@@ -1,0 +1,9 @@
+# Perception stage (Stage 1.5) dependencies. Python 3.11+.
+#   uv pip install -r perception/requirements.txt
+# The spatial SDK does the 3D work; the [sam] extra adds SAM3 (needs FAL_KEY).
+cyvl[viz,sam] @ git+https://github.com/roadgnar/cyvl-spatial-sdk
+numpy>=1.26
+pyproj>=3.6
+matplotlib>=3.8
+python-dotenv>=1.0
+pytest>=8

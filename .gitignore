@@ -15,3 +15,5 @@ data/
 # cached layer downloads (re-fetched from the public bucket on demand)
 _cache/
 *.parquet
+# perception generated artifacts (rendered evidence images)
+_evidence/
