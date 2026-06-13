@@ -15,3 +15,7 @@ venv/
 data/
 data_cache/
 .swarm_cache/
+# cached layer downloads (re-fetched from the public bucket on demand)
+_cache/
+*.parquet
+.gstack/
