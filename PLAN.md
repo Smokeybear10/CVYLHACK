@@ -27,9 +27,14 @@ Pitch arc: hook (50 to 1), insight (the measurements already exist in the scan),
 
 ## 2. Scope, locked
 
-- Charger type: curbside / street-frontage L2 only for the MVP. It is 100 percent street
-  visible (the scan is street level), it fits dense Somerville (no driveways), and for curbside
-  the nearest pole is the actual interconnection point. Forecourt/pad mode is a stretch.
+- Charger type: curbside / street-frontage L2 only for the MVP, and this is a deliberate fit,
+  not a limitation. Cyvl's data IS the curb. The scan is street level, so the curb is the one
+  place we can measure everything that matters (usable frontage, ADA ramp, obstruction
+  clearance, distance to the nearest pole, pavement to cut) with zero assumptions. For curbside
+  the nearest pole is the actual interconnection point, and dense Somerville has little
+  off-street parking, so the street literally is the site. Off-street lots and forecourt DCFC
+  are a Cyvl scan away, not a rebuild (see "Why Cyvl, not Google Maps" and section 13): the day
+  Cyvl captures a parking lot, the same engine screens it.
 - Region: the data covers all of Somerville. For the demo we circle a small, well scanned area
   (Davis Square or Union Square). We do not claim coverage we have not checked.
 - What we measure: usable frontage, distance to power, ADA path, obstruction clearance,
@@ -60,6 +65,33 @@ Four criteria, 25 percent each, out of 16 (docs/JUDGING.md). Build decisions map
   measurement, no power distance, no verdict. The product dies. That is central, not decorated.
 - Presentation. 5 minute pitch plus 2 for questions, twice (booth at 5:30, finals at 6:30). A
   clean, rehearsed, live demo on a real Somerville block.
+
+---
+
+## Why Cyvl, not Google Maps (the moat)
+
+This is the answer to the "Google Maps clone" 0 and the "remove it and does it die" test, so we
+say it out loud in the pitch.
+
+A map gives you a flat top-down image and an address. It cannot tell you any of the things a
+siting decision actually turns on:
+
+- Usable curb width and how many 2.7 x 5.5 m stalls physically fit. A map has no dimension off
+  the curb.
+- Whether an ADA ramp and accessible path exist. Cyvl carries the ramp as a labeled asset with
+  truncated-dome, type, and condition attributes.
+- What obstructs the footprint (hydrant, tree, manhole, streetlight) and how far each one sits.
+- Distance to the nearest real power asset (pole, luminaire), which is the curbside
+  interconnection point and the top cost driver. A map shows none of these.
+- The pavement you would cut and its condition, which sets the trench cost.
+
+All of that requires a street-level 3D scan with labeled, located assets, which is exactly what
+Cyvl is and a map is not. Remove Cyvl and Sonder has no measurement, no power distance, no
+verdict. It is not a layer on top of Maps. It is the thing Maps cannot be, and it is curbside
+precisely because the scan is the curb.
+
+One line for the room: "Every other tool ranks demand on a map. None of them can tell you if a
+charger fits, because they never see the site. We measure the site from Cyvl's scan."
 
 ---
 
@@ -316,7 +348,9 @@ Data:
 - Signs cover only the south/southeast. Pick a demo region with coverage; do not rely on signs.
 - No transformer asset type. Power is pole and luminaire proximity, plus SAM3 or the custom
   detector for the actual can.
-- No parcel or lot geometry. Curbside scope only.
+- No parcel or lot geometry yet, so curbside scope only today. This is a Cyvl coverage gap, not
+  an architecture limit: when Cyvl scans a parking lot or parcel, the same engine screens it.
+  Frame off-street as roadmap, never fake it.
 - Coordinate mismatch (WGS84 vs UTM 19N). Convert only at projection time.
 
 Agents:
@@ -347,7 +381,8 @@ Demo and narrative:
 - Real Cyvl scans of Somerville, no mock data on the demo path.
 - Traffic is a road-class and AADT proxy; Cyvl has no live traffic volume.
 - Power is proximity to scanned poles; true grid capacity is private and flagged.
-- The scan is street level, so we screen street-visible sites; lot interiors are flagged.
+- The scan is street level, so we screen street-visible curbside sites today; lot interiors are
+  flagged, and they come into scope the moment Cyvl scans the lot, same engine.
 - It is a snapshot, not a live feed.
 
 ---
@@ -372,7 +407,11 @@ Checklist before building:
 ## 13. Stretch and open decisions
 
 Stretch: a real Stage 1 CV classifier, the fine-tuned detector, a Gaussian splat of the winning
-block, a zoning gate, forecourt mode, a refined trench-cost model.
+block, a zoning gate, a refined trench-cost model, and forecourt / parking-lot mode. Forecourt
+is the big one: the moment Cyvl captures off-street parcels and lots, the same screening engine
+runs on them with no architecture change, which extends Sonder from curbside L2 to off-street
+DCFC and the ChargePoint / EVgo / Electrify America pad buyers. "Every street Cyvl scans, and
+every lot they scan next, is a market we can screen."
 
 Open: confirm Davis Square as the demo region; decide whether to train the detector or ship
 SAM3 only for the demo.
