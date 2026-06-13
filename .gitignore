@@ -1,0 +1,14 @@
+.env
+.env.*
+*.key
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+# point cloud / large data
+*.las
+*.laz
+*.copc
+*.ply
+data/
