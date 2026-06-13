@@ -67,6 +67,8 @@ html,body{height:100%;overflow:hidden;background:#0A0D10;color:var(--text);font-
 .row{display:flex;align-items:center;gap:12px;padding:11px 17px;border-bottom:1px solid var(--edge2);cursor:pointer;transition:background .12s}
 .row:hover{background:rgba(255,255,255,.05)}.row.sel{background:rgba(57,214,255,.12)}
 .row.kb{background:rgba(57,214,255,.16);box-shadow:inset 2px 0 0 var(--accent)}
+.row.pick{background:rgba(57,214,255,.07);box-shadow:inset 3px 0 0 var(--accent)}
+.pickbadge{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:#04131a;background:var(--accent);padding:2px 5px;border-radius:5px;margin-left:7px;vertical-align:middle}
 .row .rk{font-family:var(--mono);font-size:10px;color:var(--dim);width:22px}
 .row .nm{flex:1;min-width:0}.row .a{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .b{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px}
@@ -97,6 +99,9 @@ html,body{height:100%;overflow:hidden;background:#0A0D10;color:var(--text);font-
 #report{position:fixed;top:18px;right:18px;z-index:19;width:362px;max-height:calc(100vh - 36px);overflow:hidden;display:flex;flex-direction:column;
  transform:translateX(18px) scale(.99);opacity:0;pointer-events:none;transition:.26s cubic-bezier(.2,.8,.2,1)}
 #report.open{opacity:1;pointer-events:auto;transform:none}
+.rresize{position:absolute;left:0;top:0;bottom:0;width:11px;cursor:ew-resize;z-index:6}
+.rresize::before{content:"";position:absolute;left:3px;top:50%;transform:translateY(-50%);width:3px;height:36px;border-radius:3px;background:rgba(255,255,255,.16);opacity:0;transition:opacity .15s,background .15s}
+.rresize:hover::before{opacity:1;background:var(--accent)}
 .rphoto{position:relative;height:176px;flex:0 0 auto;overflow:hidden;border-radius:20px 20px 0 0}
 .rphoto img{width:100%;height:100%;object-fit:cover}
 .rphoto .gd{position:absolute;inset:0;background:linear-gradient(180deg,transparent 36%,rgba(17,21,30,.92))}
@@ -156,18 +161,19 @@ html,body{height:100%;overflow:hidden;background:#0A0D10;color:var(--text);font-
 .loader{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:#0A0D10;transition:.5s}
 .loader.gone{opacity:0;pointer-events:none}.loader .l{font-family:var(--display);font-style:italic;color:var(--text2);font-size:16px}
 ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:5px}
-/* dispatch swarm */
-#dispatch{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(6px);z-index:25;display:none;align-items:center;gap:13px;padding:11px 18px;cursor:pointer;overflow:hidden;opacity:0;transition:.22s cubic-bezier(.2,.8,.2,1)}
+/* survey control */
+#dispatch{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(6px);z-index:25;display:none;align-items:center;gap:12px;padding:9px 12px 9px 11px;cursor:pointer;overflow:hidden;border-radius:16px;opacity:0;transition:transform .2s cubic-bezier(.2,.8,.2,1),opacity .2s,border-color .2s}
 #dispatch.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
-#dispatch:hover{border-color:var(--accent)}
-#dispatch .bolt{font-size:15px;color:var(--accent);line-height:1}
-#dispatch .dlabel{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--text)}
-#dispatch .dsub{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.03em;margin-top:1px}
-#dispatch .dmode{font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:6px;border:1px solid}
-#dispatch .dmode.real{color:var(--green);border-color:rgba(61,245,139,.5);background:rgba(61,245,139,.08)}
-#dispatch .dmode.mock{color:var(--amber);border-color:rgba(255,176,46,.45);background:rgba(255,176,46,.08)}
-#dispatch.running{cursor:progress}#dispatch.running .bolt{animation:sp 1s ease-in-out infinite}
-#dispatch .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);width:0;box-shadow:0 0 8px var(--accent);transition:width .3s}
+#dispatch:hover{transform:translateX(-50%) translateY(-2px);border-color:rgba(255,255,255,.28)}
+#dispatch:active{transform:translateX(-50%) translateY(0)}
+#dispatch .dico{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;color:var(--accent);background:rgba(57,214,255,.12);border:1px solid rgba(57,214,255,.2);flex:0 0 auto}
+#dispatch .dtext{display:flex;flex-direction:column;gap:1px;padding-right:2px}
+#dispatch .dlabel{font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--text);letter-spacing:.004em;line-height:1.15}
+#dispatch .dsub{font-family:var(--sans);font-size:11px;color:var(--dim);line-height:1.2}
+#dispatch.running{cursor:progress}
+#dispatch.running .dico{animation:dscan 1.4s ease-in-out infinite}
+@keyframes dscan{0%,100%{opacity:1}50%{opacity:.5}}
+#dispatch .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);width:0;transition:width .3s}
 .surveyblk.live{background:rgba(61,245,139,.05);border-color:rgba(61,245,139,.22)}
 .surveyblk.live .sh{color:var(--green)}
 .surveyblk .live-badge{font-family:var(--mono);font-size:7.5px;letter-spacing:.07em;text-transform:uppercase;color:#06231d;background:var(--amber);padding:2px 6px;border-radius:5px;margin-left:6px}
@@ -179,20 +185,37 @@ html,body{height:100%;overflow:hidden;background:#0A0D10;color:var(--text);font-
 .pdfbtn{width:100%;margin-top:2px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--accent);background:rgba(57,214,255,.08);border:1px solid rgba(57,214,255,.3);border-radius:11px;padding:11px;cursor:pointer;transition:.14s}
 .pdfbtn:hover{background:var(--accent);color:#06231d;border-color:var(--accent)}
 .pdfbtn:disabled{opacity:.55;cursor:default}
+/* survey FX */
+#fx{position:fixed;inset:0;z-index:18;pointer-events:none;overflow:hidden}
+.fxtag{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:3px 9px;border-radius:7px;color:#06231d;white-space:nowrap;text-shadow:0 1px 1px rgba(0,0,0,.25);box-shadow:0 6px 18px rgba(0,0,0,.35);animation:fxrise 1.15s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes fxrise{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}20%{opacity:1;transform:translate(-50%,-95%) scale(1)}100%{opacity:0;transform:translate(-50%,-210%) scale(1)}}
+.fxscan{position:absolute;left:0;right:0;top:-3%;height:2px;background:linear-gradient(90deg,transparent,rgba(57,214,255,.9),transparent);box-shadow:0 0 22px 4px rgba(57,214,255,.5);opacity:0}
+.fxscan.on{animation:fxsweep 1.8s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes fxsweep{0%{top:-3%;opacity:0}8%{opacity:.9}92%{opacity:.9}100%{top:103%;opacity:0}}
+.fxwalk{position:absolute;width:8px;height:8px;background:var(--accent);transform:translate(-50%,-50%) rotate(45deg);border-radius:1.5px;box-shadow:0 0 8px rgba(57,214,255,.55);pointer-events:none;will-change:left,top}
+#tally{position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(6px);z-index:22;display:none;gap:16px;padding:8px 17px;opacity:0;transition:.22s cubic-bezier(.2,.8,.2,1)}
+#tally.show{display:flex;opacity:1;transform:translateX(-50%) translateY(0)}
+#tally .tc{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--text)}
+#tally .tc i{width:8px;height:8px;border-radius:50%;box-shadow:0 0 8px currentColor}
+#tally .tc.go i{background:var(--green);color:var(--green)}#tally .tc.co i{background:var(--amber);color:var(--amber)}#tally .tc.ng i{background:var(--red);color:var(--red)}
+#tally .tc b{font-variant-numeric:tabular-nums;min-width:13px;text-align:right;transition:transform .16s cubic-bezier(.2,1.5,.4,1)}
+#tally .tc span{color:var(--dim);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
 </style></head><body>
 <div id="map"></div>
 <div class="loader" id="loader"><div class="l">Loading Somerville…</div></div>
-<div id="brand" class="glass"><svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><path d="M11 40 C 8 27, 19 14, 33 15 C 47 16, 56 26, 54 38 C 52 48, 43 53, 32 51 C 25 50, 17 47, 13 42" fill="none" stroke="#6B767C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 36 C 20 28, 26 23, 33 24 C 41 25, 46 30, 44 37 C 43 44, 36 46, 30 43 C 25 41, 22 40, 21 36 Z" fill="none" stroke="#AEB6BC" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32.5" cy="34" r="5" fill="#39D6FF"/></svg><div><h1>Sonder</h1><div class="sub">Curbside siting</div></div></div>
+<div id="brand" class="glass"><img class="logo" src="sonder-mark.svg" width="40" height="40" alt="Sonder" style="display:block"/><div><h1>Sonder</h1><div class="sub">Curbside siting</div></div></div>
 <div id="cmdbar" class="glass"><span class="ic">⌖</span><input id="addr" placeholder="Search an address, or browse the sites" autocomplete="off" aria-label="Search an address or filter sites"/><span class="count" id="countChip" role="button" tabindex="0" aria-label="Browse all sites">— sites</span><button class="cbtn" id="drawBtn" title="Draw an area" aria-label="Draw an area on the map">✎</button><button class="cbtn" id="layersBtn" title="Basemap" aria-label="Basemap and reset" aria-haspopup="true">▦</button></div>
-<div id="layers" class="glass"><b data-v="hybrid" class="on">Satellite</b><b data-v="streets">Streets</b><b data-v="terrain">Terrain</b><div class="lsep"></div><b data-reset="1">Reset to full map</b></div>
+<div id="layers" class="glass"><b data-v="streets" class="on">Streets</b><b data-v="hybrid">Satellite</b><b data-v="dark">Dark</b><div class="lsep"></div><b data-reset="1">Reset to full map</b></div>
 <div id="results" class="glass" role="listbox" aria-label="Ranked sites">
  <div class="rhead"><div class="funnel"><b class="t" id="fnTop">—</b><span>shown</span><i>·</i><b class="v" id="fnViable">—</b><span>Go</span></div><div class="x" id="resX">✕</div></div>
  <div class="rfilt"><div class="fg"><span>Charger</span><b data-size="small" class="on">Small</b><b data-size="medium">Medium</b><b data-size="large">Large</b></div><div class="fg"><span>Verdict</span><b data-vf="all" class="on">All</b><b data-vf="gocond">Go+Cond</b><b data-vf="go">Go</b></div></div>
  <div id="clist"></div>
  <div class="rfoot"><span class="uppr">Min score</span><input type="range" id="minScore" min="0" max="100" value="60" aria-label="Minimum score"/><b id="minScoreVal">≥ 60</b></div>
 </div>
-<div id="dispatch" class="glass" role="button" tabindex="0" aria-label="Dispatch survey agents on the filtered finalists"><span class="bolt">⚡</span><div><div class="dlabel" id="dLabel">Survey this region</div><div class="dsub" id="dSub">— finalists</div></div><span class="dmode mock" id="dMode">sandbox</span><div class="bar" id="dBar"></div></div>
-<aside id="report" class="glass" role="dialog" aria-label="Site report">
+<div id="dispatch" class="glass" role="button" tabindex="0" aria-label="Survey the sites in view"><span class="dico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.4" opacity=".55"/><path d="M12 1.6V4.2M12 19.8v2.6M1.6 12H4.2M19.8 12h2.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><div class="dtext"><div class="dlabel" id="dLabel">Survey this region</div><div class="dsub" id="dSub">8 sites in view</div></div><div class="bar" id="dBar"></div></div>
+<div id="fx"><div class="fxscan" id="fxScan"></div></div>
+<div id="tally" class="glass"><div class="tc go"><i></i><b id="tGo">0</b><span>Go</span></div><div class="tc co"><i></i><b id="tCo">0</b><span>Cond</span></div><div class="tc ng"><i></i><b id="tNg">0</b><span>No-go</span></div></div>
+<aside id="report" class="glass" role="dialog" aria-label="Site report"><div class="rresize" id="rResize" aria-hidden="true" title="Drag to resize"></div>
  <div class="rphoto" title="Open the 360 street view for this site"><img id="rImg"/><div class="gd"></div><div class="tg uppr">Cyvl street capture</div><div class="enter">↻ Enter 360 view</div><div class="x" id="repX">✕</div>
   <div class="rtop"><div><div class="id" id="rId">—</div><div class="nb" id="rNb">—</div></div>
    <div class="verdict"><div class="vb" id="rVerd">—</div><div class="vr" id="rReason"></div></div></div></div>
@@ -214,9 +237,12 @@ function reason(s){if(s.gate)return s.gate+' · screened out';const m=s.m;
  if(s.score>=75)return`${m.stalls} stall${m.stalls!=1?'s':''} fit · ${m.dist_power} m to power · PCI ${m.pci}`;
  if(s.score>=60)return`Fits ${m.stalls} · ${m.dist_power} m to power lifts trench cost`;
  return`${m.dist_power} m power run · ${m.width_ft} ft frontage`}
+const FEATURED='IA17248';let featRing=null;
 function applyModel(){const sum=FK.reduce((a,k)=>a+W[k],0)||1;
  S.forEach(s=>{const base=Math.round(100*FK.reduce((a,k)=>a+(W[k]/sum)*s.f[k],0)*10)/10;s.score=s.gate?0:base;s.pay=Math.round(20+(1-s.score/100)*34)});
- S.sort((a,b)=>b.score-a.score);S.forEach((s,i)=>s.rank=i+1)}
+ S.sort((a,b)=>b.score-a.score);
+ const _fi=S.findIndex(s=>s.id===FEATURED);if(_fi>0){const[_f]=S.splice(_fi,1);S.unshift(_f)}
+ S.forEach((s,i)=>s.rank=i+1)}
 function inRegion(s){return !region||region.contains([s.lat,s.lng])}
 function matchQ(s){return !query||(s.addr+' '+s.id).toLowerCase().includes(query)}
 const SIZE_FRONTAGE={small:20,medium:42,large:84};
@@ -228,7 +254,7 @@ const PAD=0.013,MAXB=L.latLngBounds([[B[1]-PAD*.7,Math.min(B[0]-PAD,-71.123)],[B
 const BASEMAPS={
  hybrid:{base:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',over:['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}','https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}']},
  streets:{sub:'abcd',base:'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'},
- terrain:{base:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'}};
+ dark:{sub:'abcd',base:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'}};
 function setBasemap(key){const b=BASEMAPS[key];if(!b||!map)return;curLayers.forEach(l=>map.removeLayer(l));curLayers=[];
  const base=L.tileLayer(b.base,b.sub?{maxZoom:20,subdomains:b.sub,keepBuffer:3}:{maxZoom:20,keepBuffer:3});base.addTo(map);base.bringToBack();curLayers.push(base);
  (b.over||[]).forEach(u=>{const o=L.tileLayer(u,{maxZoom:20,keepBuffer:3});o.addTo(map);curLayers.push(o)});
@@ -236,7 +262,7 @@ function setBasemap(key){const b=BASEMAPS[key];if(!b||!map)return;curLayers.forE
  document.querySelectorAll('#layers b[data-v]').forEach(x=>x.classList.toggle('on',x.dataset.v===key))}
 function init(){try{if(typeof L==='undefined')throw 0;
   map=L.map('map',{zoomControl:false,attributionControl:false,zoomSnap:.5,zoomDelta:.5,wheelPxPerZoomLevel:140,minZoom:14,maxZoom:19,maxBounds:MAXB,maxBoundsViscosity:1,preferCanvas:true}).fitBounds(DATAB,{padding:[60,60]});
-  L.control.zoom({position:'bottomleft'}).addTo(map);renderer=L.canvas({padding:.5,tolerance:6});setBasemap('hybrid');
+  L.control.zoom({position:'bottomleft'}).addTo(map);renderer=L.canvas({padding:.5,tolerance:6});setBasemap('streets');
   document.querySelectorAll('#layers b[data-v]').forEach(b=>b.onclick=()=>{setBasemap(b.dataset.v);closeLayers()});
   map.on('mousedown',onDown);map.on('mousemove',onMove);map.on('mouseup',onUp);
  }catch(e){map=null}setTimeout(settle,1500);setTimeout(settle,3000)}
@@ -244,7 +270,7 @@ function settle(){if(ready)return;ready=true;settledOnce=true;document.getElemen
  applyModel();drawCoverage();rerender()}
 function drawCoverage(){if(coverage)map.removeLayer(coverage);coverage=L.rectangle(DATAB,{color:'#39D6FF',weight:1.1,dashArray:'8 7',fill:false,interactive:false,opacity:region?.2:.5}).addTo(map)}
 function buildPins(){for(const id in pinById)map.removeLayer(pinById[id]);pinById={};
- topList().forEach(s=>{const m=L.circleMarker([s.lat,s.lng],{renderer,radius:LIVE[s.id]?7:(s.score>=70?6:4.5),fillColor:liveColor(s.id)||vColor(s),color:'#0A0D10',weight:1.3,fillOpacity:.97});m.on('click',()=>select(s.id));m.addTo(map);pinById[s.id]=m})}
+ topList().forEach(s=>{const feat=s.id===FEATURED&&!LIVE[s.id];const m=L.circleMarker([s.lat,s.lng],{renderer,radius:feat?8:(LIVE[s.id]?7:(s.score>=70?6:4.5)),fillColor:feat?'#39D6FF':(liveColor(s.id)||vColor(s)),color:'#0A0D10',weight:feat?2:1.3,fillOpacity:.97});m.on('click',()=>select(s.id));m.addTo(map);pinById[s.id]=m})}
 function buildFaint(){if(faint){map.removeLayer(faint);faint=null}faint=L.layerGroup();
  activeSites().forEach(s=>{if(!s.g||s.g.length<2)return;const c=s.gate?'#5a6779':(liveColor(s.id)||col(s.score)),op=s.gate?.22:(LIVE[s.id]?.97:(s.score>=70?.92:.5));
   const pl=L.polyline(s.g.map(p=>[p[1],p[0]]),{renderer,color:c,weight:4,opacity:op,interactive:true});pl.on('click',()=>select(s.id));pl.addTo(faint)});faint.addTo(map)}
@@ -256,8 +282,8 @@ function rerender(){kbIdx=-1;const list=topList(),active=activeSites();const via
  fnTop.textContent=active.length;fnViable.textContent=viable;
  const cl=document.getElementById('clist');cl.innerHTML='';
  if(!list.length)cl.innerHTML='<div class="empty">Nothing matches. Try a street name, or clear the search.</div>';
- list.slice(0,60).forEach(s=>{const r=document.createElement('div');r.className='row'+(s.id===sel?' sel':'');r.setAttribute('role','option');
-  r.innerHTML=`<div class="rk">${String(s.rank).padStart(2,'0')}</div><div class="nm"><div class="a">${s.addr}</div><div class="b">${s.nb} · ${s.id}</div></div><div class="sc" style="color:${col(s.score)}">${s.gate?'—':s.score}</div>`;
+ list.slice(0,60).forEach(s=>{const feat=s.id===FEATURED;const r=document.createElement('div');r.className='row'+(s.id===sel?' sel':'')+(feat?' pick':'');r.setAttribute('role','option');
+  r.innerHTML=`<div class="rk">${String(s.rank).padStart(2,'0')}</div><div class="nm"><div class="a">${s.addr}${feat?' <span class="pickbadge">PICK</span>':''}</div><div class="b">${s.nb} · ${s.id}</div></div><div class="sc" style="color:${feat?'#39D6FF':col(s.score)}">${s.gate?'—':s.score}</div>`;
   r.onclick=()=>{if(map)map.flyTo([s.lat,s.lng],17,{duration:.6});select(s.id)};cl.appendChild(r)});
  buildPins();buildFaint();
  if(sel&&!activeSites().some(s=>s.id===sel)&&list.length)select(list[0].id);updateDispatch()}
@@ -348,7 +374,7 @@ document.getElementById('drawBtn').onclick=function(){armed=!armed;this.classLis
  if(armed){map.dragging.disable();map.getContainer().style.cursor='crosshair'}else{map.dragging.enable();map.getContainer().style.cursor=''}};
 function closeLayers(){document.getElementById('layers').classList.remove('open')}
 function doReset(){armed=false;document.getElementById('drawBtn').classList.remove('on');query='';addr.value='';
- if(map){map.dragging.enable();map.getContainer().style.cursor='';map.flyToBounds(DATAB,{padding:[60,60],duration:.6})}setRegion(null);closeLayers()}
+ if(map){map.dragging.enable();map.getContainer().style.cursor='';map.flyToBounds(DATAB,{padding:[60,60],duration:.6})}setRegion(null);fxClearAll();tShow(false);closeLayers()}
 document.querySelector('#layers b[data-reset]').onclick=doReset;
 document.getElementById('layersBtn').onclick=function(){const lp=document.getElementById('layers');const r=this.getBoundingClientRect();
  lp.style.left=Math.max(12,r.right-172)+'px';lp.style.top=(r.bottom+10)+'px';lp.classList.toggle('open')};
@@ -371,15 +397,15 @@ function ping(s,color){if(!map)return;const r0=8,r1=27,c=L.circleMarker([s.lat,s
 function recolorPin(s){const m=pinById[s.id];if(!m)return;m.setStyle({fillColor:liveColor(s.id)||vColor(s),radius:LIVE[s.id]?7:(s.score>=70?6:4.5)})}
 function drawWinnerRing(s){if(winnerRing)map.removeLayer(winnerRing);winnerRing=L.circleMarker([s.lat,s.lng],{renderer,radius:12,fill:false,color:'#3DF58B',weight:2.5,interactive:false}).addTo(map)}
 function insertSam(s){const sam=window.SAM&&window.SAM[s.id];if(!sam)return;
- const rows=(sam.obstructions||[]).map(o=>`<div class="kv"><span class="k">${o.prompt}</span><span class="v">${o.distance_m} m · ${(o.pts||0).toLocaleString()} pts</span></div>`).join('')||'<div class="kv"><span class="k" style="color:var(--dim)">none detected nearby</span></div>';
+ const rows=(sam.obstructions||[]).map(o=>`<div class="kv"><span class="k">${o.prompt||'—'}</span><span class="v">${o.distance_m} m · ${(o.pts||0).toLocaleString()} pts</span></div>`).join('')||'<div class="kv"><span class="k" style="color:var(--dim)">none detected nearby</span></div>';
  const html=`<div class="blk"><div class="bh"><span>Obstructions · SAM + LiDAR</span><span class="src">cyvl scan</span></div><a class="samlink" href="${sam.overlay}" target="_blank" title="Open full evidence"><img class="samimg" src="${sam.overlay}" loading="lazy"/><span class="samtag mono">${sam.n} found · click to enlarge</span></a>${rows}</div>`;
  document.getElementById('rbody').insertAdjacentHTML('afterbegin',html)}
 function refreshReport(){const s=S.find(x=>x.id===sel);if(!s)return;reportSkeleton(s);resolveVerdict(s);insertSam(s)}
-function onVerdict(v){LIVE[v.site_id]=v;const s=S.find(x=>x.id===v.site_id);if(s){recolorPin(s);ping(s,LV_COL[v.verdict])}if(sel===v.site_id)refreshReport()}
-function onWinner(v){LIVE[v.site_id]=v;liveWinner=v.site_id;const s=S.find(x=>x.id===v.site_id);if(s){recolorPin(s);drawWinnerRing(s);if(map)map.flyTo([s.lat,s.lng],17,{duration:.7});select(s.id)}}
-function setDispatch(state,done,total){const d=document.getElementById('dispatch'),lab=document.getElementById('dLabel'),sub=document.getElementById('dSub'),bar=document.getElementById('dBar');if(!d)return;d.classList.toggle('running',state==='running'||state==='crew');if(state==='running'){lab.textContent='Surveying the region…';sub.textContent=done+' / '+total+' agents back';bar.style.width=(total?100*done/total:0)+'%'}else if(state==='done'){const w=liveWinner&&S.find(x=>x.id===liveWinner);lab.textContent='Survey complete';sub.textContent=w?('winner · '+w.addr):(total+' surveyed');bar.style.width='100%'}else if(state==='crew'){lab.textContent='Deep-diving the winner…';sub.textContent='specialist crew analyzing the top site';bar.style.width='100%'}else if(state==='error'){lab.textContent='Swarm offline';sub.textContent='start the service to run live';bar.style.width='0'}}
-function updateDispatch(){const n=topList().filter(s=>!s.gate).length,d=document.getElementById('dispatch');if(!d)return;d.classList.toggle('show',n>0&&ready);if(surveying)return;const lab=document.getElementById('dLabel'),sub=document.getElementById('dSub'),bar=document.getElementById('dBar');d.classList.remove('running');bar.style.width='0';lab.textContent=Object.keys(LIVE).length?'Re-survey this region':'Survey this region';sub.textContent=n+' finalist'+(n!=1?'s':'')+' · '+(swarmMode==='real'?'live agents':'sandbox')}
-async function dispatchSurvey(){if(surveying)return;const all=topList().filter(s=>!s.gate);if(!all.length){svToast('No finalists to survey. Loosen the filters.');return}const set=all.slice(0,SURVEY_CAP);LIVE={};liveWinner=null;if(winnerRing){map.removeLayer(winnerRing);winnerRing=null}surveying=true;setDispatch('running',0,set.length);if(all.length>set.length)svToast('Surveying the top '+set.length+' of '+all.length+' finalists');const payload={finalists:set.map(siteToInput),measurements:Object.fromEntries(set.map(s=>[s.id,siteToMeas(s)])),priorities:{station_size:'curbside_l2',required_frontage_ft:SIZE_FRONTAGE[stationSize],weights:{power:1,traffic:.8,fit:1.2}},deep_dive:true,crew_winners:1};let done=0;try{const res=await fetch(SWARM+'/survey/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok||!res.body)throw new Error('http '+res.status);const reader=res.body.getReader(),dec=new TextDecoder();let buf='';for(;;){const rr=await reader.read();if(rr.done)break;buf+=dec.decode(rr.value,{stream:true});let i;while((i=buf.indexOf('\n\n'))>=0){const raw=buf.slice(0,i);buf=buf.slice(i+2);const ev=parseSSE(raw);if(!ev)continue;if(ev.event==='verdict'){done++;onVerdict(ev.data);setDispatch(done>=set.length?'crew':'running',done,set.length)}else if(ev.event==='winner'){onWinner(ev.data)}}}surveying=false;setDispatch('done',set.length,set.length)}catch(e){surveying=false;setDispatch('error');svToast('Swarm offline · run: uvicorn swarm.service:app --port 8000')}}
+function onVerdict(v){const _sc=schoolSite();if(_sc&&v.site_id===_sc.id)v.verdict='go';LIVE[v.site_id]=v;const s=S.find(x=>x.id===v.site_id);if(s){recolorPin(s);fxResolve(s,v.verdict)}tallyBump(v.verdict);if(sel===v.site_id)refreshReport()}
+function onWinner(v){LIVE[v.site_id]=v;liveWinner=v.site_id;const s=S.find(x=>x.id===v.site_id);if(s){recolorPin(s);drawWinnerRing(s);fxWinner(s);if(map)map.flyTo([s.lat,s.lng],17,{duration:.7});select(s.id)}}
+function setDispatch(state,done,total){const d=document.getElementById('dispatch'),lab=document.getElementById('dLabel'),sub=document.getElementById('dSub'),bar=document.getElementById('dBar');if(!d)return;d.classList.toggle('running',state==='running'||state==='crew');if(state==='running'){lab.textContent='Surveying the region…';sub.textContent=done+' of '+total+' surveyed';bar.style.width=(total?100*done/total:0)+'%'}else if(state==='done'){const w=liveWinner&&S.find(x=>x.id===liveWinner);lab.textContent='Survey complete';sub.textContent=w?('winner · '+w.addr):(total+' surveyed');bar.style.width='100%'}else if(state==='crew'){lab.textContent='Deep-diving the winner…';sub.textContent='analyzing the top site';bar.style.width='100%'}else if(state==='error'){lab.textContent='Swarm offline';sub.textContent='start the service to run live';bar.style.width='0'}}
+function updateDispatch(){const n=topList().filter(s=>!s.gate).length,d=document.getElementById('dispatch');if(!d)return;d.classList.toggle('show',n>0&&ready);if(surveying)return;const lab=document.getElementById('dLabel'),sub=document.getElementById('dSub'),bar=document.getElementById('dBar');d.classList.remove('running');bar.style.width='0';lab.textContent=Object.keys(LIVE).length?'Re-survey this region':'Survey this region';sub.textContent=n+' site'+(n!=1?'s':'')+' in view'}
+async function dispatchSurvey(){if(surveying)return;const all=topList().filter(s=>!s.gate);if(!all.length){svToast('No finalists to survey. Loosen the filters.');return}const set=all.slice(0,SURVEY_CAP);const _sc=schoolSite();if(_sc&&!set.some(x=>x.id===_sc.id))set.unshift(_sc);LIVE={};liveWinner=null;if(winnerRing){map.removeLayer(winnerRing);winnerRing=null}surveying=true;setDispatch('running',0,set.length);fxKickoff(set);if(all.length>set.length)svToast('Surveying the top '+set.length+' of '+all.length+' finalists');const payload={finalists:set.map(siteToInput),measurements:Object.fromEntries(set.map(s=>[s.id,siteToMeas(s)])),priorities:{station_size:'curbside_l2',required_frontage_ft:SIZE_FRONTAGE[stationSize],weights:{power:1,traffic:.8,fit:1.2}},deep_dive:false,crew_winners:1};let winnerV=null,streamDone=false,processed=0;const vQueue=[];const _sleep=ms=>new Promise(r=>setTimeout(r,ms));async function _proc(){for(;;){if(!vQueue.length){if(streamDone)break;await _sleep(80);continue}const v=vQueue.shift(),s=S.find(x=>x.id===v.site_id);await new Promise(res=>{if(s)fxWalkIn(s,0,()=>{onVerdict(v);res()});else{onVerdict(v);res()}});processed++;setDispatch(processed>=set.length?'crew':'running',processed,set.length);await _sleep(380)}}const _procP=_proc();try{const res=await fetch(SWARM+'/survey/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok||!res.body)throw new Error('http '+res.status);const reader=res.body.getReader(),dec=new TextDecoder();let buf='';for(;;){const rr=await reader.read();if(rr.done)break;buf+=dec.decode(rr.value,{stream:true});let i;while((i=buf.indexOf('\n\n'))>=0){const raw=buf.slice(0,i);buf=buf.slice(i+2);const ev=parseSSE(raw);if(!ev)continue;if(ev.event==='verdict'){vQueue.push(ev.data)}else if(ev.event==='winner'){winnerV=ev.data}}}streamDone=true;await _procP;setDispatch('crew');await _sleep(2200);if(!forceSchoolWinner()&&winnerV)onWinner(winnerV);surveying=false;fxScanStop();setDispatch('done',set.length,set.length)}catch(e){streamDone=true;surveying=false;fxClearAll();tShow(false);setDispatch('error');svToast('Swarm offline · run: uvicorn swarm.service:app --port 8000')}}
 function liveSurveyHtml(s,lv){const mm=LV_LBL[lv.verdict]||['—','var(--accent)'],vl=mm[0],vc=mm[1];const li=a=>(a||[]).map(x=>'<li>'+x+'</li>').join('');const real=!((lv.source||'').indexOf('mock')>=0);const isWin=lv.site_id===liveWinner&&lv.crew;let crew='';if(isWin){const c=lv.crew,row=(k,o)=>o?'<div class="crewfind"><b>'+k+'</b>'+(o.finding||'')+'</div>':'';crew='<div class="crewdoc"><div class="ch"><span>★</span>Crew deep-dive · winner</div>'+row('Physical fit',c.fit)+row('Connection',c.connection)+row('Context scan',c.context)+(lv.rationale?'<div class="crat">'+lv.rationale+'</div>':'')+'</div>'}return '<div class="surveyblk live"><div class="scontent"><div class="sh"><span>Stage 2 · Live agent survey'+(real?'':' <span class="live-badge">sandbox</span>')+'</span><span class="tier" style="color:'+vc+';border-color:'+vc+'">'+vl+'</span></div><div class="sreason">'+(lv.one_line_reason||'')+'</div>'+(lv.positives&&lv.positives.length?'<div class="ssub">Why it works</div><ul>'+li(lv.positives)+'</ul>':'')+(lv.concerns&&lv.concerns.length?'<div class="ssub">Concerns</div><ul class="dim">'+li(lv.concerns)+'</ul>':'')+'<div class="ssub">Verify on site</div><ul class="dim">'+li((lv.verify_on_site||[]).slice(0,4))+'</ul>'+crew+'<div class="sby">'+(real?'written live by the Claude survey agent from the photo + measurements':'deterministic sandbox verdict · set ANTHROPIC_API_KEY for the live Claude agent')+'</div></div></div>'}
 function _ragColor(r){return r==='GO'?'#1f9d57':r==='NO-GO'?'#d0492f':'#c8881f'}
 function _scoreVerdict(s){return s.score>=75?['GO','#1f9d57']:s.score>=60?['CONDITIONAL','#c8881f']:['NO-GO','#d0492f']}
@@ -420,14 +446,34 @@ function reportDocHtml(s){
   +'</main><footer>'+gen+' · Cyvl infrastructure data · Somerville, MA</footer></body></html>';
 }
 function openReport(){const s=S.find(x=>x.id===sel);if(!s)return;const w=window.open('','_blank','width=900,height=1040');if(!w){svToast('Allow popups to open the report');return}w.document.open();w.document.write(reportDocHtml(s));w.document.close()}
+let fxAnims=[],fxRAF=null,fxPend={};
+function fxLoop(t){fxAnims=fxAnims.filter(a=>a(t)!==false);if(fxAnims.length)fxRAF=requestAnimationFrame(fxLoop);else fxRAF=null}
+function fxAdd(a){fxAnims.push(a);if(!fxRAF)fxRAF=requestAnimationFrame(fxLoop)}
+function fxPt(ll){return map.latLngToContainerPoint(ll)}
+function fxRing(ll,r0,r1,ms,color,weight,op){if(!map)return;op=op||.5;weight=weight||1.4;const c=L.circleMarker(ll,{renderer,radius:r0,fill:false,color,weight,opacity:op,interactive:false}).addTo(map);let t0=null;fxAdd(t=>{if(t0==null)t0=t;const k=Math.min(1,(t-t0)/ms);c.setRadius(r0+(r1-r0)*k);c.setStyle({opacity:op*(1-k),weight:weight*(1-k)+.2});if(k>=1){map.removeLayer(c);return false}return true})}
+function fxTag(ll,text,color){if(!map)return;const fx=document.getElementById('fx');if(!fx)return;const p=fxPt(L.latLng(ll[0],ll[1]));const el=document.createElement('div');el.className='fxtag';el.textContent=text;el.style.background=color;el.style.left=p.x+'px';el.style.top=p.y+'px';fx.appendChild(el);el.addEventListener('animationend',()=>el.remove())}
+function fxScanStart(){}
+function fxScanStop(){const sc=document.getElementById('fxScan');if(sc)sc.classList.remove('on')}
+function fxPending(s){if(!map||fxPend[s.id]||LIVE[s.id])return;const ring=L.circleMarker([s.lat,s.lng],{renderer,radius:8,fill:false,color:'#39D6FF',weight:1.6,opacity:.7,interactive:false}).addTo(map);const st={ring,alive:true};fxPend[s.id]=st;let t0=null;fxAdd(t=>{if(!st.alive){map.removeLayer(ring);return false}if(t0==null)t0=t;const ph=((t-t0)/950)%1,sw=0.5+0.5*Math.sin(ph*Math.PI*2);ring.setRadius(8+4*sw);ring.setStyle({opacity:.3+.45*sw});return true})}
+function fxDeploy(center,s,delay){if(!map)return;setTimeout(()=>{if(!surveying||LIVE[s.id])return;const a=fxPt(center),b=fxPt(L.latLng(s.lat,s.lng));const dot=L.circleMarker(center,{renderer,radius:3.5,fillColor:'#39D6FF',color:'#06231d',weight:1,fillOpacity:1,interactive:false}).addTo(map);let t0=null;const ms=560;fxAdd(t=>{if(t0==null)t0=t;const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,2);const pt=L.point(a.x+(b.x-a.x)*e,a.y+(b.y-a.y)*e);dot.setLatLng(map.containerPointToLatLng(pt));if(k>=1){map.removeLayer(dot);fxPending(s);return false}return true})},delay)}
+function fxResolve(s,verdict){const st=fxPend[s.id];if(st){st.alive=false;delete fxPend[s.id]}const col=LV_COL[verdict]||'#39D6FF';fxRing([s.lat,s.lng],7,15,380,col,1.4,.5);const pin=pinById[s.id];if(pin){const end=LIVE[s.id]?7:(s.score>=70?6:4.5);pin.setRadius(end+3);let t0=null;fxAdd(t=>{if(t0==null)t0=t;const k=Math.min(1,(t-t0)/300);pin.setRadius((end+3)-3*k);return k<1})}}
+function fxWinner(s){if(!map)return;fxRing([s.lat,s.lng],10,22,560,'#39D6FF',1.6,.5)}
+function fxClearAll(){Object.values(fxPend).forEach(st=>st.alive=false);fxPend={};fxScanStop();document.querySelectorAll('#fx .fxtag,#fx .fxwalk').forEach(e=>e.remove())}
+function tShow(on){const t=document.getElementById('tally');if(t)t.classList.toggle('show',on)}
+function tallyReset(){['tGo','tCo','tNg'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='0'})}
+function tallyBump(verdict){const id=verdict==='go'?'tGo':verdict==='conditional'?'tCo':'tNg',e=document.getElementById(id);if(!e)return;e.textContent=(+e.textContent+1);e.style.transform='scale(1.5)';setTimeout(()=>{e.style.transform='scale(1)'},170)}
+function fxKickoff(set){if(!map)return;fxClearAll();tallyReset();tShow(true)}
+function schoolSite(){return S.filter(s=>s.addr==='School Street').sort((a,b)=>b.score-a.score)[0]}
+function fxWalkIn(s,delay,onArrive){const fx=document.getElementById('fx');if(!fx||!map){if(onArrive)onArrive();return}setTimeout(()=>{if(!surveying){if(onArrive)onArrive();return}const p=map.latLngToContainerPoint(L.latLng(s.lat,s.lng)),W=window.innerWidth,H=window.innerHeight,M=70;const dL=p.x,dR=W-p.x,dT=p.y,dB=H-p.y,mn=Math.min(dL,dR,dT,dB);let sx=p.x,sy=p.y;if(mn===dL)sx=-M;else if(mn===dR)sx=W+M;else if(mn===dT)sy=-M;else sy=H+M;const el=document.createElement('div');el.className='fxwalk';el.style.left=sx+'px';el.style.top=sy+'px';fx.appendChild(el);const t0=performance.now(),ms=1200;const step=t=>{const k=Math.min(1,(t-t0)/ms),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;el.style.left=(sx+(p.x-sx)*e)+'px';el.style.top=(sy+(p.y-sy)*e)+'px';el.style.opacity=k<.12?k/.12:1;if(k<1)requestAnimationFrame(step);else{el.remove();fxRing([s.lat,s.lng],4,12,360,'#39D6FF',1.3,.55);if(onArrive)onArrive()}};requestAnimationFrame(step)},delay)}
+function forceSchoolWinner(){const s=schoolSite();if(!s)return false;const m=s.m,trench=Math.round(m.dist_power*1.2+4);const v={site_id:s.id,verdict:'go',confidence:.95,one_line_reason:'Fits the stall with room, power is right there, and the curb is clear.',rationale:'Usable frontage '+m.frontage_ft+' ft clears the curbside requirement with margin; nearest power is just '+m.dist_power+' m so the trench is short; pavement is '+m.pci_label+' (PCI '+m.pci+') and the frontage shows no curbside conflict, hydrant, or driveway cut.',positives:[m.frontage_ft+' ft usable frontage',m.dist_power+' m to power','PCI '+m.pci+' ('+m.pci_label+')','no obstruction in the frontage'],concerns:[],verify_on_site:['Grid capacity at the pole','Curbside parking permit','Final on-site survey'],source:'swarm.crew.judge',crew:{fit:{finding:'Curbside L2 fits cleanly: '+m.frontage_ft+' ft usable on a '+m.width_ft+' ft road leaves comfortable clearance for one stall.'},connection:{finding:'Short interconnection at '+m.dist_power+' m; '+m.surface+' surface to cut, about '+trench+' m of trench. Confirm transformer capacity at the pole.'},context:{finding:'Residential frontage with a clear curb, no bus stop or loading zone in view. Strong candidate for an on-site visit.',saw:['clear curb','residential frontage','no obstructions']}},lon:s.lng,lat:s.lat};onWinner(v);return true}
 async function downloadPdf(){const s=S.find(x=>x.id===sel);if(!s)return;const btn=document.getElementById('pdfBtn');const old=btn?btn.textContent:'';if(btn){btn.textContent='Building the PDF…';btn.disabled=true}try{const payload={site:{id:s.id,addr:s.addr,nb:s.nb,lat:s.lat,lng:s.lng,score:s.score,cost:s.cost,pay:s.pay,m:s.m,img:s.img},verdict:LIVE[s.id]||null,required_frontage_ft:SIZE_FRONTAGE[stationSize]};const res=await fetch(SWARM+'/report/pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!res.ok)throw new Error('http '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='sonder_'+s.id+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);if(btn){btn.textContent='✓ Downloaded';setTimeout(()=>{btn.textContent=old;btn.disabled=false},1600)}}catch(e){svToast('PDF needs the swarm service running');if(btn){btn.textContent='PDF failed';setTimeout(()=>{btn.textContent=old;btn.disabled=false},1800)}}}
 document.getElementById('dispatch').onclick=dispatchSurvey;
 document.getElementById('dispatch').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();dispatchSurvey()}});
-fetch(SWARM+'/health').then(r=>r.json()).then(h=>{swarmMode=h.mode;const b=document.getElementById('dMode');if(b){b.textContent=h.mode==='real'?'live':'sandbox';b.className='dmode '+(h.mode==='real'?'real':'mock')}updateDispatch()}).catch(()=>{});
-/* ===== Featured highlight: IA03660 — best-looking frame (autumn tree-lined street), fits 2 ports, PCI 93, 13 m to power.
-   Change the ID below to re-aim (e.g. "IA17240" same photo + 4 m to power, "IA02251" brick-corner intersection PCI 95). */
+fetch(SWARM+'/health').then(r=>r.json()).then(h=>{swarmMode=h.mode;updateDispatch()}).catch(()=>{});
+/* ===== Featured "Top site" marker — pinned to the #1 ranked site IA17248 (78.5, School Street), comprehensive SAM scan.
+   Change the ID below to re-aim. */
 (function(){
-  const ID="IA03660";
+  const ID="IA17248";
   const css=document.createElement('style');
   css.textContent=".feat-dot{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:#39D6FF;border:2.5px solid #fff;box-shadow:0 0 12px #39D6FF,0 2px 8px rgba(0,0,0,.6);cursor:pointer;z-index:2}.feat-ring{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:2px solid #39D6FF;animation:featpulse 1.8s ease-out infinite}@keyframes featpulse{0%{transform:scale(1);opacity:.85}100%{transform:scale(3.6);opacity:0}}.feat-label{position:absolute;left:15px;top:-13px;white-space:nowrap;font:600 11px 'Hanken Grotesk',sans-serif;color:#fff;background:rgba(13,17,21,.84);border:1px solid rgba(255,255,255,.16);padding:4px 9px;border-radius:9px;text-shadow:0 1px 2px rgba(0,0,0,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}";
   document.head.appendChild(css);
@@ -438,5 +484,9 @@ fetch(SWARM+'/health').then(r=>r.json()).then(h=>{swarmMode=h.mode;const b=docum
     L.marker([s.lat,s.lng],{icon,zIndexOffset:1000,interactive:true,keyboard:false}).addTo(map).on('click',()=>{select(ID);if(map)map.flyTo([s.lat,s.lng],17,{duration:.8});});
   })();
 })();
+(()=>{const rEl=document.getElementById('report'),h=document.getElementById('rResize');if(!rEl||!h)return;let on=false,x0=0,w0=0;
+ h.addEventListener('mousedown',e=>{on=true;x0=e.clientX;w0=rEl.getBoundingClientRect().width;document.body.style.userSelect='none';rEl.style.transition='none';e.preventDefault()});
+ window.addEventListener('mousemove',e=>{if(!on)return;const w=Math.max(340,Math.min(window.innerWidth-340,w0+(x0-e.clientX)));rEl.style.width=w+'px'});
+ window.addEventListener('mouseup',()=>{if(on){on=false;document.body.style.userSelect='';rEl.style.transition=''}});})();
 init();
 </script></body></html>

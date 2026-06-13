@@ -22,6 +22,8 @@ import cv2
 import numpy as np
 
 REPO = Path(__file__).resolve().parent.parent
+# prompts whose SAM hits are kept as measured points but shown without a type name
+GENERIC = {"manhole"}
 DEFAULT_PROMPTS = ["fire hydrant", "driveway", "utility pole", "tree", "parked car", "traffic sign"]
 COLORS = [(255, 90, 57), (139, 245, 61), (46, 176, 255), (82, 90, 255), (255, 120, 180), (255, 200, 120)]  # BGR
 
@@ -57,7 +59,7 @@ def _site_lonlat(site_id: str) -> tuple[float, float]:
 
 
 def survey(lon, lat, prompts=DEFAULT_PROMPTS, *, scene="somerville", out=None,
-           label="", frame_id=None, radius_m=30.0):
+           label="", frame_id=None, radius_m=30.0, max_masks=3):
     """Segment + 3D-locate obstructions for one curbside site."""
     _load_env()
     import cyvl
@@ -76,7 +78,7 @@ def survey(lon, lat, prompts=DEFAULT_PROMPTS, *, scene="somerville", out=None,
     findings = []
     for ci, prompt in enumerate(prompts):
         try:
-            hits = locate(frame, prompt, radius_m=radius_m)
+            hits = locate(frame, prompt, radius_m=radius_m, max_masks=max_masks)
         except Exception as exc:  # one bad prompt shouldn't kill the survey
             print(f"  ! {prompt}: {exc}")
             continue
@@ -86,10 +88,10 @@ def survey(lon, lat, prompts=DEFAULT_PROMPTS, *, scene="somerville", out=None,
             canvas[reg] = (canvas[reg] * 0.45 + np.array(color) * 0.55).astype(np.uint8)
             ys, xs = np.where(reg)
             if len(xs):
-                cv2.putText(canvas, f"{prompt} {h.distance_m:.1f}m", (int(xs.min()), max(16, int(ys.min()) - 6)),
+                cv2.putText(canvas, (f"{h.distance_m:.1f}m" if prompt in GENERIC else f"{prompt} {h.distance_m:.1f}m"), (int(xs.min()), max(16, int(ys.min()) - 6)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2, cv2.LINE_AA)
             findings.append({
-                "prompt": prompt,
+                "prompt": ("" if prompt in GENERIC else prompt),
                 "lonlat": [round(h.lonlat[0], 6), round(h.lonlat[1], 6)],
                 "distance_m": round(h.distance_m, 1),
                 "score": round(h.score, 2),
@@ -125,6 +127,7 @@ def main() -> None:
     ap.add_argument("--scene", default="somerville")
     ap.add_argument("--out")
     ap.add_argument("--radius", type=float, default=30.0, help="LiDAR fetch radius, meters")
+    ap.add_argument("--max-masks", type=int, default=3, help="max objects per prompt (1-32)")
     a = ap.parse_args()
 
     if a.site:
@@ -136,7 +139,7 @@ def main() -> None:
     prompts = [s.strip() for s in a.prompts.split(",")] if a.prompts else DEFAULT_PROMPTS
 
     print(f"Surveying {label}  ({lat:.5f}, {lon:.5f})")
-    r = survey(lon, lat, prompts, scene=a.scene, out=a.out, label=label, frame_id=a.frame_id, radius_m=a.radius)
+    r = survey(lon, lat, prompts, scene=a.scene, out=a.out, label=label, frame_id=a.frame_id, radius_m=a.radius, max_masks=a.max_masks)
     print(f"\nframe {r['frame']}  ({r['frame_distance_m']} m from site)")
     print(f"{r['n_obstructions']} obstruction(s) located in 3D:")
     for f in r["obstructions"]:
