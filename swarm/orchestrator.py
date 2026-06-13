@@ -16,13 +16,15 @@ from pathlib import Path
 from typing import Iterator
 
 from .schema import SiteInput, Measurements, UserPriorities, Verdict
-from . import providers, prompts
+from . import providers, prompts, config
 
 CACHE_DIR = Path(os.environ.get("SWARM_CACHE", ".swarm_cache"))
 
 
 def _cache_key(site: SiteInput, prefs: UserPriorities) -> str:
-    blob = json.dumps([site.site_id, prefs.station_size, prefs.weights], sort_keys=True)
+    # include mode + model so mock and real verdicts never collide in the cache
+    mode = config.BREADTH_MODEL if providers.have_key() else "mock"
+    blob = json.dumps([site.site_id, prefs.station_size, prefs.weights, mode], sort_keys=True)
     return hashlib.sha1(blob.encode()).hexdigest()[:16]
 
 
@@ -80,7 +82,8 @@ def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verd
         findings = {}
         for role, sys in prompts.CREW_SPECIALISTS.items():
             msgs = prompts.build_surveyor_messages(site, meas, prefs)
-            findings[role] = providers._parse_json(providers._call_model(sys, msgs, max_tokens=512))
+            findings[role] = providers._parse_json(
+                providers._call_model(sys, msgs, model=config.CREW_MODEL, max_tokens=512))
         judge_user = [{
             "role": "user",
             "content": [
@@ -90,7 +93,8 @@ def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verd
                 {"type": "text", "text": "Return the final verdict JSON with a crew object."},
             ],
         }]
-        data = providers._parse_json(providers._call_model(prompts.JUDGE_SYSTEM, judge_user, max_tokens=1200))
+        data = providers._parse_json(
+            providers._call_model(prompts.JUDGE_SYSTEM, judge_user, model=config.CREW_MODEL, max_tokens=1200))
         crew = data.get("crew", findings)
         base = {k: data[k] for k in (
             "verdict", "confidence", "one_line_reason", "rationale",

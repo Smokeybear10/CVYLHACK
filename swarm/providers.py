@@ -12,7 +12,7 @@ import os
 from typing import Any
 
 from .schema import SiteInput, Measurements, UserPriorities, Verdict
-from . import prompts
+from . import prompts, config
 
 
 def have_key() -> bool:
@@ -32,12 +32,12 @@ def _to_anthropic_content(content: list[dict]) -> list[dict]:
     return out
 
 
-def _call_model(system: str, messages: list[dict], temperature: float = 0.1,
-                max_tokens: int = 1024) -> str:
+def _call_model(system: str, messages: list[dict], model: str | None = None,
+                temperature: float = 0.1, max_tokens: int = 1024) -> str:
     import anthropic  # imported lazily so mock mode needs no dependency
 
     client = anthropic.Anthropic()
-    model = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+    model = model or config.BREADTH_MODEL
     api_messages = [{"role": m["role"], "content": _to_anthropic_content(m["content"])} for m in messages]
     resp = client.messages.create(
         model=model, system=system, messages=api_messages,
