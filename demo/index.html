@@ -157,10 +157,77 @@
   .loader{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--bg);transition:.5s}
   .loader.gone{opacity:0;pointer-events:none}
   .loader .l{font-family:var(--mono);color:var(--cyan);font-size:12px;letter-spacing:.3em}
+
+  /* ===== ADDITIVE ANIMATION LAYER ===== */
+
+  /* 1 · on-load staggered reveal of header + panels */
+  @keyframes revealUp{from{opacity:0;transform:translateY(10px);clip-path:inset(0 0 14% 0)}
+    to{opacity:1;transform:none;clip-path:inset(0 0 0 0)}}
+  @keyframes revealHead{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  body.booted header{animation:revealHead .55s cubic-bezier(.2,.7,.2,1) both}
+  body.booted .rail{animation:revealUp .55s cubic-bezier(.2,.7,.2,1) .06s both}
+  body.booted #listPanel{animation:revealUp .6s cubic-bezier(.2,.7,.2,1) .14s both}
+  body.booted #weights{animation:revealUp .6s cubic-bezier(.2,.7,.2,1) .22s both}
+  body.booted #legend{animation:revealUp .6s cubic-bezier(.2,.7,.2,1) .3s both}
+
+  /* 2 · slow radar sweep / scanline over the map area */
+  .scan{position:fixed;inset:54px 0 0 0;pointer-events:none;z-index:5;overflow:hidden;mix-blend-mode:screen;opacity:.5}
+  .scan .sweep{position:absolute;left:50%;top:50%;width:200vmax;height:200vmax;transform:translate(-50%,-50%);
+    background:conic-gradient(from 0deg,
+      rgba(52,227,212,0) 0deg,
+      rgba(52,227,212,0) 300deg,
+      rgba(52,227,212,.05) 348deg,
+      rgba(52,227,212,.16) 360deg);
+    animation:radar 7s linear infinite}
+  .scan .line{position:absolute;left:0;right:0;height:90px;
+    background:linear-gradient(180deg,transparent,rgba(52,227,212,.05) 60%,rgba(52,227,212,.14));
+    animation:scanline 6.5s cubic-bezier(.45,0,.55,1) infinite}
+  @keyframes radar{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  @keyframes scanline{0%{top:-90px;opacity:0}8%{opacity:1}92%{opacity:1}100%{top:100%;opacity:0}}
+
+  /* 3 · pulsing list-row status LED (DOM markers; map markers pulse via deck.gl rAF) */
+  @keyframes ledPulse{0%,100%{box-shadow:0 0 4px currentColor;opacity:1}50%{box-shadow:0 0 9px currentColor;opacity:.45}}
+  .row .led{width:6px;height:6px;border-radius:50%;background:currentColor;flex:0 0 auto;
+    animation:ledPulse 2.2s ease-in-out infinite}
+  .row.sel .led{animation-duration:1.1s}
+
+  /* count-up shimmer cue on hero stats while tweening */
+  .stat b.counting{animation:countGlow 1.1s ease-out}
+  @keyframes countGlow{0%{text-shadow:0 0 12px currentColor}100%{text-shadow:0 1px 2px rgba(0,0,0,.65)}}
+
+  /* 5 · live ticker / activity sparkline in status bar */
+  .activity{display:flex;align-items:flex-end;gap:2px;height:16px;width:48px;margin-right:2px}
+  .activity i{flex:1;background:var(--cyan);border-radius:1px;opacity:.7;height:30%;
+    transform-origin:bottom;animation:spark 1.4s ease-in-out infinite}
+  .activity i:nth-child(1){animation-delay:0s}
+  .activity i:nth-child(2){animation-delay:.12s}
+  .activity i:nth-child(3){animation-delay:.24s}
+  .activity i:nth-child(4){animation-delay:.36s}
+  .activity i:nth-child(5){animation-delay:.48s}
+  .activity i:nth-child(6){animation-delay:.6s}
+  @keyframes spark{0%,100%{transform:scaleY(.3);opacity:.5}50%{transform:scaleY(1);opacity:.9}}
+
+  /* 6 · validated -> CAD handoff: brief cyan flash cueing the 3D payoff */
+  @keyframes lockFlash{0%{box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 0 rgba(52,227,212,.55)}
+    40%{box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 38px 6px rgba(52,227,212,.42)}
+    100%{box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 0 rgba(52,227,212,0)}}
+  #inspector.locking{animation:lockFlash 1.1s cubic-bezier(.2,.7,.2,1)}
+  @keyframes scoreLock{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .insp-score b.locked{animation:scoreLock .7s cubic-bezier(.2,.7,.2,1);display:inline-block}
+
+  @media (prefers-reduced-motion: reduce){
+    body.booted header,body.booted .rail,body.booted #listPanel,
+    body.booted #weights,body.booted #legend{animation:none}
+    .scan{display:none}
+    .row .led,.stat b.counting,#inspector.locking,.insp-score b.locked,.activity i{animation:none}
+    .live .dot{animation:none}
+    .activity i{height:60%;opacity:.6}
+  }
 </style>
 </head>
 <body>
 <div id="map"></div>
+<div class="scan"><div class="sweep"></div><div class="line"></div></div>
 <div class="grain"></div>
 <div class="vignette"></div>
 
@@ -191,6 +258,7 @@
       <div><b id="rCoord">42.3793, -71.0955</b></div>
       <div>Z<b id="rZoom">14.0</b> · <span id="rClock">--:--:--</span></div>
     </div>
+    <div class="activity"><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="live"><span class="dot"></span>CYVL LIVE</div>
   </div>
 </header>
@@ -293,7 +361,7 @@ function buildLayers(){
   const viable = SITES.filter(s=>s.score>=70);
   const deploySet = deployOn ? new Set(SITES.slice(0,10).map(s=>s.id)) : new Set();
   const tnow=(Date.now()-t0)/1000;
-  const pulse = 1 + 0.35*Math.sin(tnow*3.2);
+  const pulse = _rm ? 1.12 : 1 + 0.35*Math.sin(tnow*3.2);
 
   return [
     new HeatmapLayer({
@@ -337,8 +405,8 @@ function buildLayers(){
 }
 function refresh(){ overlay.setProps({layers:buildLayers()}); }
 
-// continuous pulse for selected/deploy rings
-function tick(){ if(selectedId||deployOn) refresh(); requestAnimationFrame(tick); }
+// continuous pulse for selected/deploy rings (static under reduced-motion)
+function tick(){ if(!_rm && (selectedId||deployOn)) refresh(); requestAnimationFrame(tick); }
 
 const tip=document.getElementById('tip');
 function showTip(info){
@@ -349,14 +417,29 @@ function showTip(info){
   } else tip.style.display='none';
 }
 
+const _rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el,to,fmt){
+  if(!el) return;
+  fmt=fmt||(v=>String(Math.round(v)));
+  const from=parseFloat(String(el.textContent).replace(/[^0-9.\-]/g,''))||0;
+  if(_rm||Math.abs(to-from)<0.05){el.textContent=fmt(to);return;}
+  el.classList.add('counting');
+  const t0=performance.now(),dur=700;
+  (function step(now){
+    const p=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-p,3);
+    el.textContent=fmt(from+(to-from)*e);
+    if(p<1) requestAnimationFrame(step);
+    else{el.textContent=fmt(to);setTimeout(()=>el.classList.remove('counting'),400);}
+  })(performance.now());
+}
 function renderHero(){
   const viable=SITES.filter(s=>s.score>=70).length;
   const top=SITES[0].score;
   const cap=SITES.slice(0,10).reduce((a,s)=>a+s.cost_estimate,0);
-  document.getElementById('hEval').textContent=SITES.length;
-  document.getElementById('hViable').textContent=viable;
-  document.getElementById('hTop').textContent=top.toFixed(1);
-  document.getElementById('hCap').textContent='$'+(cap/1000).toFixed(0)+'K';
+  countUp(document.getElementById('hEval'),SITES.length);
+  countUp(document.getElementById('hViable'),viable);
+  countUp(document.getElementById('hTop'),top,v=>v.toFixed(1));
+  countUp(document.getElementById('hCap'),cap/1000,v=>'$'+Math.round(v)+'K');
   document.getElementById('listCount').textContent=viable+' VIABLE';
 }
 
@@ -366,6 +449,7 @@ function renderList(){
     const [vl,vc]=verdict(s.score);
     const r=document.createElement('div'); r.className='row'+(s.id===selectedId?' sel':'');
     r.innerHTML=`<div class="rk mono">${String(s.rank).padStart(2,'0')}</div>
+      <span class="led" style="color:${vc}"></span>
       <div class="nm"><div class="a">${s.id}</div><div class="b uppr">${s.neighborhood}</div></div>
       <div style="text-align:right"><div class="sc mono" style="color:${colize(s.score)}">${s.score}</div>
       <div class="chip" style="color:${vc};border:1px solid currentColor">${vl}</div></div>`;
@@ -417,9 +501,15 @@ function fillInspector(s){
 
 function select(id){
   selectedId=id;
-  document.getElementById('inspector').classList.add('show');
+  const insp=document.getElementById('inspector');
+  insp.classList.add('show');
   fillInspector(SITES.find(s=>s.id===id));
   renderList(); refresh();
+  if(!_rm){
+    insp.classList.remove('locking'); void insp.offsetWidth; insp.classList.add('locking');
+    const sb=document.getElementById('iScore');
+    sb.classList.remove('locked'); void sb.offsetWidth; sb.classList.add('locked');
+  }
 }
 function flyTo(s){ map.flyTo({center:[s.lng,s.lat],zoom:Math.max(map.getZoom(),16),pitch:55,duration:900}); }
 
@@ -452,6 +542,7 @@ async function init(){
     overlay=new MapboxOverlay({interleaved:false, layers:buildLayers()});
     map.addControl(overlay);
     document.getElementById('loader').classList.add('gone');
+    document.body.classList.add('booted');
     map.flyTo({center:DATA.meta.center, zoom:14.3, pitch:52, bearing:-18, duration:2600, curve:1.4});
     // auto-open the top site for the demo
     setTimeout(()=>select(SITES[0].id),2700);
