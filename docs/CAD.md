@@ -268,20 +268,31 @@ cached fallback for every step.
 
 ## Status
 
-- Read and understood Xavier's repo end to end. The integration is small (the model and placement
-  above) because his pipeline already does the heavy lifting.
-- Not yet run here. Blocked only on environment setup (conda + PDAL) and APS credentials from Xavier.
-- Plan and contract are set. Next action: get the creds, prove the round-trip with
-  `write_dummy_scene()`, add the charger, bake the demo location.
+- Xavier's tool is vendored into `cad/` (source + tests + his docs; the two 31 MB `points.bin`
+  viewer binaries were skipped, regenerate with `export_points.py`).
+- The charger is built: `ev_station_objects` + the `ev_green` material added to `cad/pipeline/to_cad.py`,
+  and the placement wired into `cad/run.py` behind `SONDER_SITE` (off by default, so a normal run is
+  unchanged).
+- Tested: `cd cad && pytest` is green (16 passing). That includes Xavier's pipeline tests
+  (crop/segment/lift_assets/auth/select_tiles) plus rewritten `to_cad` tests that cover the charger
+  model and prove it lands in the OBJ as a selectable `ev_station_01` group with the `ev_green`
+  material. The old `test_to_cad.py` was stale (imported a `box_obj` that no longer exists); it now
+  matches the real API.
+- Still blocked for the live scene only on: conda + PDAL install, and APS credentials
+  (`APS_CLIENT_ID` / `APS_CLIENT_SECRET`) from Xavier. The geometry side runs today.
+- Next action: get the creds, prove the dummy APS round-trip (`write_dummy_scene()` from
+  `cad/pipeline/to_cad.py`), then bake the demo location with `SONDER_SITE` set.
 
 ## Build order
 
-1. Sibling-clone `xavier-cyvl/hackathonBuckets`. conda env + PDAL. APS creds in `.env`.
-2. Prove the dummy round-trip: `write_dummy_scene()` to upload to translate to viewer.
-3. Add `ev_station_objects` plus the `ev_green` material. Re-run the dummy with a charger and confirm
-   it is selectable and movable in the viewer.
-4. Pick the demo location (start with the swarm's winner, or Xavier's proven Ball Square scene). Pull
+1. [done] Vendor the tool into `cad/`.
+2. [done] Add `ev_station_objects` + `ev_green` material; wire placement into `run.py` behind
+   `SONDER_SITE`. Covered by `cad/tests` (green).
+3. conda env + PDAL (`conda install -c conda-forge pdal python-pdal`). APS creds in `cad/.env`.
+4. Prove the dummy round-trip: `write_dummy_scene()` to upload to translate to viewer. Then re-run
+   the dummy with a charger and confirm it is selectable and movable in the viewer.
+5. Pick the demo location (start with the swarm's winner, or Xavier's proven Ball Square scene). Pull
    its tile and vectors. Run `run.py` with `SONDER_SITE` and the ROI center.
-5. Wire the swarm winner to the handoff JSON (a few lines in the swarm `service.py`).
-6. Pre-bake the report locations, paste the URNs, rehearse the swarm-to-viewer cut three times.
-7. Stretch: viewer click-to-place; the Civil 3D export artifact.
+6. Wire the swarm winner to the handoff JSON (a few lines in the swarm `service.py`).
+7. Pre-bake the report locations, paste the URNs, rehearse the swarm-to-viewer cut three times.
+8. Stretch: viewer click-to-place; the Civil 3D export artifact.
