@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 
-from . import config, measure, scene, segment
+from . import config, measure, obstacles, scene, segment
 
 VERIFY_ON_SITE = ["grid capacity", "zoning", "host willingness", "final permit"]
 
@@ -83,20 +83,41 @@ def perceive(candidate, station_size: str = config.DEFAULT_STATION,
 
     frame = scene.nearest_frame(centroid[0], centroid[1])
 
-    # SAM3 obstruction discovery + power location (real CV; runs only with FAL_KEY)
-    obstructions, sam_used, note = segment.locate_obstructions(frame)
-    if note:
-        notes.append(note)
-    sam_power_m, _ = segment.locate_power(frame)
+    # Obstruction discovery. Default: Cyvl's detected asset layer (real, no fal).
+    # Upgrade: live SAM3 when FAL_KEY works (adds driveways / bus stops / construction).
+    sam_power_m = None
+    if config.sam_available():
+        raw_obstructions, sam_used, note = segment.locate_obstructions(frame)
+        if note:
+            notes.append(note)
+        valid = [o for o in raw_obstructions if o.get("lon") is not None]
+        errored = any("error" in o for o in raw_obstructions)
+        if not valid and errored:  # fal failed (e.g. balance) -> fall back, stay real
+            notes.append("SAM3 unavailable mid-run (fal error); using Cyvl asset layer")
+            sam_used, obstruction_source = False, "cyvl-asset"
+        else:
+            sam_power_m, _ = segment.locate_power(frame)
+            obstruction_source = "sam3"
+    else:
+        sam_used = False
+        obstruction_source = "cyvl-asset"
+
+    if obstruction_source == "cyvl-asset":
+        raw_obstructions = obstacles.find_obstructions(endpoints)
+        notes.append("obstructions from Cyvl detected-asset layer")
+
+    obstructions_checked = bool(endpoints) or obstruction_source == "sam3"
 
     # frontage measured off the scan when we have the segment geometry
     if endpoints:
         segment_ft, frontage_source = measure.measure_frontage_scan(frame, endpoints)
-        tagged = measure.on_segment_obstructions(obstructions, endpoints)
+        # asset-source obstructions already carry on_segment; SAM ones need tagging
+        tagged = (raw_obstructions if obstruction_source == "cyvl-asset"
+                  else measure.on_segment_obstructions(raw_obstructions, endpoints))
     else:
         segment_ft = float(props.get("length_ft") or 0.0)
         frontage_source = "screening"
-        tagged = [dict(o, on_segment=False, offset_m=None) for o in obstructions]
+        tagged = [dict(o, on_segment=False) for o in raw_obstructions]
         notes.append("no segment geometry; frontage from screening length_ft")
 
     usable_ft = measure.usable_frontage_ft(segment_ft, tagged)
@@ -112,7 +133,8 @@ def perceive(candidate, station_size: str = config.DEFAULT_STATION,
     fits = measure.fits_station(usable_ft, station_size)
     has_blocker = any(o.get("on_segment") for o in tagged)
     verdict = measure.refined_verdict(
-        fits=fits, dist_to_power_m=dist_to_power_m, has_blocker=has_blocker, sam_used=sam_used)
+        fits=fits, dist_to_power_m=dist_to_power_m, has_blocker=has_blocker,
+        obstructions_checked=obstructions_checked)
 
     evidence_path = None
     if render and endpoints:
@@ -121,7 +143,9 @@ def perceive(candidate, station_size: str = config.DEFAULT_STATION,
 
     result.update({
         "measured": True,
-        "method": "sam3" if sam_used else ("lidar" if frontage_source == "scan" else "geometry"),
+        "method": obstruction_source,
+        "obstruction_source": obstruction_source,
+        "obstructions_checked": obstructions_checked,
         "frame_id": getattr(frame, "id", None),
         "image_url": getattr(frame, "image_url", None),
         "segment_frontage_ft": round(segment_ft, 1),

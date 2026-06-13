@@ -34,7 +34,7 @@ def test_dist_point_to_segment():
 def test_usable_frontage_subtracts_on_segment_blockers():
     obstr = [
         {"label": "driveway curb cut", "on_segment": True},   # eats 12
-        {"label": "fire hydrant", "on_segment": True},        # eats 5
+        {"label": "HYDRANT", "on_segment": True},             # eats 5
         {"label": "bus stop", "on_segment": False},           # off segment, ignored
     ]
     assert measure.usable_frontage_ft(40.0, obstr) == pytest.approx(40 - 12 - 5)
@@ -52,11 +52,12 @@ def test_fits_station():
 
 
 def test_refined_verdict_matrix():
-    assert measure.refined_verdict(fits=False, dist_to_power_m=10, has_blocker=False, sam_used=True) == "No-go"
-    assert measure.refined_verdict(fits=True, dist_to_power_m=999, has_blocker=False, sam_used=True) == "No-go"
-    assert measure.refined_verdict(fits=True, dist_to_power_m=20, has_blocker=True, sam_used=True) == "Conditional"
-    assert measure.refined_verdict(fits=True, dist_to_power_m=20, has_blocker=False, sam_used=False) == "Conditional"
-    assert measure.refined_verdict(fits=True, dist_to_power_m=20, has_blocker=False, sam_used=True) == "Go"
+    rv = measure.refined_verdict
+    assert rv(fits=False, dist_to_power_m=10, has_blocker=False, obstructions_checked=True) == "No-go"
+    assert rv(fits=True, dist_to_power_m=999, has_blocker=False, obstructions_checked=True) == "No-go"
+    assert rv(fits=True, dist_to_power_m=20, has_blocker=True, obstructions_checked=True) == "Conditional"
+    assert rv(fits=True, dist_to_power_m=20, has_blocker=False, obstructions_checked=False) == "Conditional"
+    assert rv(fits=True, dist_to_power_m=20, has_blocker=False, obstructions_checked=True) == "Go"
 
 
 def test_on_segment_tagging():

@@ -64,6 +64,9 @@ def on_segment_obstructions(obstructions, endpoints) -> list[dict]:
     b = scene.lonlat_to_utm(blon, blat)
     tagged = []
     for o in obstructions:
+        if o.get("lon") is None or o.get("lat") is None:
+            tagged.append({**o, "on_segment": False, "offset_m": None})
+            continue
         ox, oy = scene.lonlat_to_utm(o["lon"], o["lat"])
         d = dist_point_to_segment_m((ox, oy), a, b)
         oo = dict(o)
@@ -85,13 +88,16 @@ def fits_station(usable_ft: float, station_size: str) -> bool:
     return usable_ft >= config.required_frontage_ft(station_size)
 
 
-def refined_verdict(*, fits: bool, dist_to_power_m, has_blocker: bool, sam_used: bool) -> str:
+def refined_verdict(*, fits: bool, dist_to_power_m, has_blocker: bool,
+                    obstructions_checked: bool) -> str:
     """Narrow the screening verdict with the measured reality."""
     if not fits:
         return "No-go"
     if dist_to_power_m is not None and dist_to_power_m > config.POWER_MAX_M:
         return "No-go"
-    if has_blocker or not sam_used:
+    if has_blocker:
+        return "Conditional"
+    if not obstructions_checked:
         return "Conditional"
     return "Go"
 
