@@ -89,7 +89,7 @@ Component roles:
 - Compute: Python for candidate generation, scoring, and measurement orchestration.
 - Agents: Claude via the Anthropic API ($200 credit) for the Stage 2 survey and verdict.
 - Serve: a small API with a screen endpoint and a survey endpoint, plus a result cache.
-- Show: a single-page web map with region draw, heatmap, report panel, and the embedded viewer.
+- Show: the UI is yours to design and is intentionally left out of this plan.
 
 ---
 
@@ -237,14 +237,7 @@ exact calibrated camera. We do not build a Potree pipeline; the viewer ships. We
 LiDAR and frames for the demo region so it loads instantly, and we export a colored point cloud
 of the winning block for the Autodesk path.
 
-### 5.7 Frontend layer
-
-A single web page: a Somerville map with a region-draw tool, a heatmap from Stage 1, finalist
-pins that fill with verdict colors as agents report, a verdict-first report panel, the embedded
-3D viewer, and the three filter sliders that re-weight Stage 1 and recolor the heatmap live.
-The live re-ranking from a slider is a better demo beat than any static model.
-
-### 5.8 Backend layer
+### 5.7 Backend layer
 
 A small service with two jobs and a cache. One endpoint takes the region and filters and returns
 the Stage 1 ranked result and heatmap. One endpoint takes the finalists and runs the survey
@@ -307,7 +300,7 @@ Rehearse three times. Keep the cached run ready as a fallback for every live ste
 - Hours 2 to 3: the SDK measurement path on one candidate, validated by eye.
 - Hours 3 to 4: one agent end to end, data and photo in, structured verdict out, stable.
 - Hours 4 to 5: scale the agent to the batched swarm, wired to the map.
-- Hours 5 to 7: the frontend, map, draw, heatmap, report, viewer, sliders.
+- Hours 5 to 7: build your UI and wire it to the screen and survey endpoints.
 - Hours 7 to 8: hardwire and cache the demo region, stub the custom CV, polish, rehearse.
 
 Rule: get one region to one measured, surveyed candidate shown in the UI bulletproof by midday.
