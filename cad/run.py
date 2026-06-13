@@ -174,7 +174,7 @@ with zipfile.ZipFile("out/scene_cad.zip", "w", zipfile.ZIP_DEFLATED) as z:
 
 # APS: upload under a fresh key (avoids stale SVF2 cache) -> translate -> URN
 tok = get_token()
-bucket = "cyvl-hack-xavier"
+bucket = os.environ.get("SONDER_BUCKET", "sonder_cad_kfe48gvs9qzn1wsa")  # our APS bucket (was Xavier's)
 ensure_bucket(tok, bucket)
 object_key = os.environ.get("SCENE_KEY", "scene_cad_v1.zip")
 urn = upload_object(tok, bucket, object_key, "out/scene_cad.zip")

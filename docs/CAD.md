@@ -286,22 +286,38 @@ cached fallback for every step.
 - This tile's RGB is empty; point colors are synthesized from elevation and LiDAR intensity.
 - Everything is real Cyvl scan data. No mock geometry on the demo path.
 
-## Status
+## Status — LIVE (real scene baked)
 
-- Xavier's tool is vendored into `cad/` (source + tests + his docs; the two 31 MB `points.bin`
-  viewer binaries were skipped, regenerate with `export_points.py`).
-- The charger is built: `ev_station_objects` + the `ev_green` material added to `cad/pipeline/to_cad.py`,
-  and the placement wired into `cad/run.py` behind `SONDER_SITE` (off by default, so a normal run is
-  unchanged).
-- Tested: `cd cad && pytest` is green (16 passing). That includes Xavier's pipeline tests
-  (crop/segment/lift_assets/auth/select_tiles) plus rewritten `to_cad` tests that cover the charger
-  model and prove it lands in the OBJ as a selectable `ev_station_01` group with the `ev_green`
-  material. The old `test_to_cad.py` was stale (imported a `box_obj` that no longer exists); it now
-  matches the real API.
-- Still blocked for the live scene only on: conda + PDAL install, and APS credentials
-  (`APS_CLIENT_ID` / `APS_CLIENT_SECRET`) from Xavier. The geometry side runs today.
-- Next action: get the creds, prove the dummy APS round-trip (`write_dummy_scene()` from
-  `cad/pipeline/to_cad.py`), then bake the demo location with `SONDER_SITE` set.
+- Xavier's tool is vendored into `cad/` (source + tests + his docs).
+- The charger is built and placed: `ev_station_objects` + `ev_green` material in
+  `cad/pipeline/to_cad.py`; placement wired into `cad/run.py` behind `SONDER_SITE`.
+- **The real Davis Square scene is baked and viewable.** Ran the full pipeline on a real Cyvl tile
+  (14.3M points): 5 cars, 21 lifted assets, 14 buildings, road/sidewalk/grass ground, and the EV
+  charger placed (54 objects). Uploaded + translated to SVF2 under our APS bucket; the viewer points
+  at it and the raw point-cloud overlay (`viewer/points.bin`, 724k pts) is generated for the "Scan"
+  toggle.
+- Tested: `cd cad && pytest` green (16) + `node --test viewer/adjust.test.js` green (11).
+- APS creds (our own app) are in `cad/.env` (gitignored). conda env at `~/miniconda3/envs/cad`.
+
+### View it
+```
+cd cad
+python viewer/token_server.py        # serves localhost:8080 + a data:read token from .env
+# open http://localhost:8080/index.html
+```
+
+### Re-bake a different location (the working pipeline)
+```
+cd cad
+# 1. find + download the tile for your lon/lat (see pipeline/select_tiles.py), into cad/laz/
+# 2. write the site handoff json (see cad/site.json) with lon/lat/bearing
+LAZ_DIR="$PWD/laz" SONDER_SITE="$PWD/site.json" SCENE_KEY="sonder_real_vN.zip" \
+  ~/miniconda3/envs/cad/bin/python run.py     # prints the URN
+LAZ_DIR="$PWD/laz" ~/miniconda3/envs/cad/bin/python export_points.py   # optional overlay
+# paste the URN into viewer/index.html (const URN=...). Bump SCENE_KEY every re-bake.
+```
+Env: `~/miniconda3/envs/cad` has PDAL 3.5.3 (py 3.11) + laspy/scipy/sklearn/geopandas/pyproj/
+matplotlib. Big inputs (`laz/`, `data/`, `out/`, `*.bin`) are gitignored.
 
 ## Build order
 
