@@ -21,7 +21,7 @@ import json
 from dataclasses import fields
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -149,3 +149,17 @@ def survey_stream(req: SurveyRequest) -> StreamingResponse:
         yield sse("done", {"count": len(verdicts)})
 
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@app.post("/report/pdf")
+def report_pdf(payload: dict) -> Response:
+    """Render one surveyed/screened site to a PDF using the survey lane's reportlab generator.
+    Body: {site: {id,addr,nb,lat,lng,score,cost,pay,m{...},img}, verdict: <live verdict|null>,
+    required_frontage_ft: float}."""
+    from .report_pdf import build_live_pdf
+    try:
+        data, filename = build_live_pdf(payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"pdf build failed: {type(e).__name__}: {e}")
+    return Response(content=data, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})

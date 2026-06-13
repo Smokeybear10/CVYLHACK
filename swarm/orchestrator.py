@@ -108,11 +108,16 @@ def pick_winners(verdicts: list[Verdict], sites: list[SiteInput], n: int = 3) ->
 def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verdict:
     """Deep-dive one winner with specialist agents, then a judge fuses them."""
     if providers.have_key():
-        findings = {}
-        for role, sys in prompts.CREW_SPECIALISTS.items():
+        def _specialist(item):
+            role, sysp = item
             msgs = prompts.build_surveyor_messages(site, meas, prefs)
-            findings[role] = providers._parse_json(
-                providers._call_model(sys, msgs, model=config.CREW_MODEL, max_tokens=512))
+            return role, providers._call_tool(
+                sysp, msgs, providers.SPECIALIST_SCHEMA, model=config.CREW_MODEL,
+                max_tokens=700, tool_name="emit_finding")
+
+        # the three specialists are independent; run them concurrently to cut the winner wait
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            findings = dict(ex.map(_specialist, list(prompts.CREW_SPECIALISTS.items())))
         judge_user = [{
             "role": "user",
             "content": [
@@ -122,8 +127,9 @@ def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verd
                 {"type": "text", "text": "Return the final verdict JSON with a crew object."},
             ],
         }]
-        data = providers._parse_json(
-            providers._call_model(prompts.JUDGE_SYSTEM, judge_user, model=config.CREW_MODEL, max_tokens=1200))
+        data = providers._call_tool(
+            prompts.JUDGE_SYSTEM, judge_user, providers.JUDGE_SCHEMA,
+            model=config.CREW_MODEL, max_tokens=1500, tool_name="emit_verdict")
         crew = data.get("crew", findings)
         base = providers._normalize(data)
     else:

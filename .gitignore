@@ -19,3 +19,5 @@ data_cache/
 _cache/
 *.parquet
 .gstack/
+exports/
+.obsidian/

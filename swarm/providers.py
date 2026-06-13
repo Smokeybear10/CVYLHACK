@@ -7,11 +7,14 @@ never for the verdicts we actually show (see the honesty note in PLAN.md §5.4).
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
+import re
+import urllib.request
 from typing import Any
 
-from .schema import SiteInput, Measurements, UserPriorities, Verdict
+from .schema import SiteInput, Measurements, UserPriorities, Verdict, VERDICT_JSON_SCHEMA
 from . import prompts, config
 
 
@@ -21,14 +24,39 @@ def have_key() -> bool:
 
 # ---- real model call --------------------------------------------------------
 
+_IMG_CACHE: dict[str, Any] = {}
+
+
+def _fetch_image_b64(url: str):
+    """Download an image and return (media_type, base64_data). Anthropic refuses URL image
+    sources blocked by robots.txt (the Cyvl CDN is), so we inline the bytes. Cached per URL.
+    Returns None on any failure so the call falls back to text-only."""
+    if url in _IMG_CACHE:
+        return _IMG_CACHE[url]
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "sonder-swarm/0.1"})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read()
+            ct = r.headers.get("Content-Type", "").split(";")[0].strip()
+        media = ct if ct.startswith("image/") else ("image/png" if url.lower().endswith(".png") else "image/jpeg")
+        out = (media, base64.standard_b64encode(raw).decode("ascii"))
+    except Exception:
+        out = None
+    _IMG_CACHE[url] = out
+    return out
+
+
 def _to_anthropic_content(content: list[dict]) -> list[dict]:
-    """Convert our message content (text + image_ref) into Anthropic blocks."""
+    """Convert our message content (text + image_ref) into Anthropic blocks. Images are fetched
+    and inlined as base64 because the Cyvl CDN disallows Anthropic's URL fetch via robots.txt."""
     out: list[dict] = []
     for block in content:
         if block["type"] == "text":
             out.append({"type": "text", "text": block["text"]})
         elif block["type"] == "image_ref":
-            out.append({"type": "image", "source": {"type": "url", "url": block["url"]}})
+            img = _fetch_image_b64(block["url"])
+            if img:
+                out.append({"type": "image", "source": {"type": "base64", "media_type": img[0], "data": img[1]}})
     return out
 
 
@@ -54,6 +82,66 @@ def _parse_json(text: str) -> dict[str, Any]:
     if start == -1 or end == -1:
         raise ValueError("no JSON object found in model output")
     return json.loads(text[start : end + 1])
+
+
+# Tool-call schemas (force schema-valid JSON; no fragile free-text parsing).
+_VERDICT_TOOL_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": VERDICT_JSON_SCHEMA["required"],
+    "properties": {**VERDICT_JSON_SCHEMA["properties"],
+                   "verdict": {"type": "string", "enum": ["go", "conditional", "no_go"]}},
+}
+JUDGE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": VERDICT_JSON_SCHEMA["required"],
+    "properties": {**_VERDICT_TOOL_SCHEMA["properties"], "crew": {"type": "object"}},
+}
+SPECIALIST_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["finding"],
+    "properties": {
+        "finding": {"type": "string"},
+        "values": {"type": "object"},
+        "saw": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
+
+# Strip control + line/paragraph separators the browser's JSON.parse rejects (U+2028/U+2029)
+# and C0 controls Python's strict json rejects. Models occasionally emit these in free text.
+_CTRL_RE = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\u2028\u2029]")
+
+
+def _clean(obj):
+    if isinstance(obj, str):
+        return _CTRL_RE.sub(" ", obj)
+    if isinstance(obj, list):
+        return [_clean(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: _clean(v) for k, v in obj.items()}
+    return obj
+
+
+def _call_tool(system: str, messages: list[dict], schema: dict, model: str | None = None,
+               temperature: float = 0.1, max_tokens: int = 1024, tool_name: str = "emit") -> dict:
+    """Force the model to return schema-valid JSON via a single tool call. Eliminates the
+    free-text JSON parsing that breaks on unescaped quotes or token-cap truncation."""
+    import anthropic  # lazy, mock mode needs no dependency
+
+    client = anthropic.Anthropic()
+    model = model or config.BREADTH_MODEL
+    api_messages = [{"role": m["role"], "content": _to_anthropic_content(m["content"])} for m in messages]
+    tool = {"name": tool_name, "description": "Return the structured result.", "input_schema": schema}
+    resp = client.messages.create(
+        model=model, system=system, messages=api_messages,
+        temperature=temperature, max_tokens=max_tokens,
+        tools=[tool], tool_choice={"type": "tool", "name": tool_name},
+    )
+    for b in resp.content:
+        if getattr(b, "type", None) == "tool_use":
+            return _clean(dict(b.input))
+    text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+    return _clean(_parse_json(text))
 
 
 # required verdict keys -> (default, type). Used to make model output safe to construct a Verdict.
@@ -151,7 +239,8 @@ def _mock_verdict(site: SiteInput, meas: Measurements, prefs: UserPriorities) ->
 def surveyor_verdict(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verdict:
     if have_key():
         msgs = prompts.build_surveyor_messages(site, meas, prefs)
-        data = _parse_json(_call_model(prompts.SURVEYOR_SYSTEM, msgs))
+        data = _call_tool(prompts.SURVEYOR_SYSTEM, msgs, _VERDICT_TOOL_SCHEMA,
+                          model=config.BREADTH_MODEL, tool_name="emit_verdict")
         source = "swarm.breadth"
     else:
         data = _mock_verdict(site, meas, prefs)
