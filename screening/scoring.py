@@ -29,13 +29,16 @@ class Filters:
     station_size: str = config.DEFAULT_SIZE
     weights: dict = field(default_factory=dict)
     required_frontage_ft: float | None = None
+    demand_mix: float = config.DEFAULT_DEMAND_MIX  # fraction residential vs traveler
 
     def resolved_weights(self) -> dict:
         merged = dict(config.DEFAULT_WEIGHTS)
-        merged.update(self.weights or {})
+        for k, v in (self.weights or {}).items():
+            if k in merged:  # ignore unknown keys rather than crash later
+                merged[k] = v
         total = sum(max(0.0, v) for v in merged.values())
         if total <= 0:
-            return dict(config.DEFAULT_WEIGHTS)
+            return dict(config.DEFAULT_WEIGHTS)  # already sums to 1
         return {k: max(0.0, v) / total for k, v in merged.items()}
 
     def required_frontage(self) -> float:
@@ -69,12 +72,35 @@ def fit_score(length_ft: float, required_ft: float) -> float:
     return _clamp01(length_ft / required_ft)  # 1.0 once the segment meets the requirement
 
 
-def traffic_score(functional_class) -> float:
+def _fclass(functional_class):
     try:
-        fc = int(functional_class)
+        return int(functional_class)
     except (TypeError, ValueError):
-        return config.DEFAULT_TRAFFIC_SCORE
-    return config.FCLASS_TRAFFIC.get(fc, config.DEFAULT_TRAFFIC_SCORE)
+        return None
+
+
+def residential_score(functional_class) -> float:
+    """Overnight-residential suitability: local and collector streets score high."""
+    fc = _fclass(functional_class)
+    if fc is None:
+        return config.DEFAULT_RESIDENTIAL
+    return config.RESIDENTIAL_BY_FCLASS.get(fc, config.DEFAULT_RESIDENTIAL)
+
+
+def traffic_score(functional_class) -> float:
+    """Traveler / through-traffic suitability with curb access: arterials and
+    collectors score high, freeways and pure-local streets low."""
+    fc = _fclass(functional_class)
+    if fc is None:
+        return config.DEFAULT_TRAFFIC
+    return config.TRAFFIC_BY_FCLASS.get(fc, config.DEFAULT_TRAFFIC)
+
+
+def demand_score(functional_class, mix: float = config.DEFAULT_DEMAND_MIX) -> float:
+    """Blend residential and traveler demand. mix is the fraction on residential
+    (0 = all traveler, 1 = all residential, 0.5 = balanced, the default)."""
+    mix = _clamp01(mix)
+    return mix * residential_score(functional_class) + (1.0 - mix) * traffic_score(functional_class)
 
 
 def pavement_score(pci: float) -> float:
@@ -128,13 +154,13 @@ def verdict_for(score: float, gated: bool) -> str:
 def score_row(row, filters: Filters, weights: dict, required_ft: float) -> dict:
     components = {
         "power": power_score(row.get("dist_to_power_m")),
+        "demand": demand_score(row.get("functional_class"), filters.demand_mix),
         "fit": fit_score(row.get("length_ft"), required_ft),
-        "traffic": traffic_score(row.get("functional_class")),
         "pavement": pavement_score(row.get("pci")),
         "ada": ada_score(row.get("dist_to_ramp_m")),
         "obstruction": obstruction_score(row.get("obstruction_count")),
     }
-    raw = sum(weights[k] * components[k] for k in weights)
+    raw = sum(weights.get(k, 0.0) * components[k] for k in components)
     score = round(100.0 * _clamp01(raw), 1)
     reasons = gate(row, required_ft)
     gated = len(reasons) > 0

@@ -69,15 +69,19 @@ MAKE_READY_BASE_USD = 6000.0   # rough equipment + permit + connection baseline
 COST_BAND_LOW_USD = 12000.0    # <= this -> "low"
 COST_BAND_HIGH_USD = 30000.0   # >= this -> "high"; between -> "moderate"
 
-# Curbside demand suitability by FHWA functional class. NOTE: curbside L2 serves
-# residents who park on-street with no driveway, so demand is RESIDENTIAL, not
-# vehicle volume. Local and collector residential streets are the target; major
-# arterials and freeways are poor (curbside parking is usually restricted there).
-# This curve is the OPPOSITE of a DC-fast-charge curve. True demand would use
-# residential / multifamily density and off-street-parking share (a data gap to
-# pair in later); road class is the available proxy. 1 interstate ... 7 local.
-FCLASS_TRAFFIC = {1: 0.10, 2: 0.15, 3: 0.30, 4: 0.55, 5: 0.90, 6: 1.0, 7: 0.85}
-DEFAULT_TRAFFIC_SCORE = 0.6  # used when functional class is missing
+# Curbside demand has two parts and we want BOTH: residents who park on-street
+# overnight (local / collector streets, no driveway) AND travelers moving through
+# the city (arterials and collectors with curb access). Each is scored from FHWA
+# functional class, then blended by demand_mix (fraction on residential; 0.5 is
+# balanced). Freeways score low for either because curbside parking is impossible
+# there. The true signals are residential / multifamily density (residential) and
+# AADT volume (traffic); functional class is the proxy until those are paired in.
+# 1 interstate ... 7 local.
+RESIDENTIAL_BY_FCLASS = {1: 0.00, 2: 0.05, 3: 0.20, 4: 0.50, 5: 0.80, 6: 0.95, 7: 1.00}
+TRAFFIC_BY_FCLASS = {1: 0.10, 2: 0.20, 3: 1.00, 4: 0.90, 5: 0.60, 6: 0.40, 7: 0.20}
+DEFAULT_RESIDENTIAL = 0.70  # used when functional class is missing
+DEFAULT_TRAFFIC = 0.50
+DEFAULT_DEMAND_MIX = 0.5     # default weight on residential vs traveler demand
 
 # Component weights, reflecting what curbside siting actually prioritizes:
 # electrical feasibility first, then residential demand, then physical fit, then
@@ -85,7 +89,7 @@ DEFAULT_TRAFFIC_SCORE = 0.6  # used when functional class is missing
 # The filter sliders override these; values are normalized to sum to 1.
 DEFAULT_WEIGHTS = {
     "power": 0.30,
-    "traffic": 0.25,   # curbside (residential) demand suitability
+    "demand": 0.25,    # blended residential + traveler demand (see demand_mix)
     "fit": 0.20,
     "ada": 0.10,
     "obstruction": 0.10,

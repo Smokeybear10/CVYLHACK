@@ -46,10 +46,19 @@ def test_candidates_sorted_best_first():
 
 
 def test_filters_change_the_ranking():
-    base = screen(region=config.DEMO_BBOX, filters=Filters(weights={"traffic": 1.0}))
+    base = screen(region=config.DEMO_BBOX, filters=Filters(weights={"demand": 1.0}))
     powered = screen(region=config.DEMO_BBOX, filters=Filters(weights={"power": 1.0}))
     # different priorities should not produce an identical top list
     assert [t["cand_id"] for t in base["top"]] != [t["cand_id"] for t in powered["top"]]
+
+
+def test_demand_mix_shifts_ranking_residential_vs_traveler():
+    residential = screen(region=config.DEMO_BBOX,
+                         filters=Filters(weights={"demand": 1.0}, demand_mix=1.0))
+    traveler = screen(region=config.DEMO_BBOX,
+                      filters=Filters(weights={"demand": 1.0}, demand_mix=0.0))
+    # leaning fully residential vs fully traveler should reorder the finalists
+    assert [t["cand_id"] for t in residential["top"]] != [t["cand_id"] for t in traveler["top"]]
 
 
 def test_empty_region_clean():

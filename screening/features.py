@@ -151,4 +151,9 @@ def build_candidates(layers: dict, region=None, functional_class: pd.DataFrame |
     else:
         pav["functional_class"] = pd.NA
 
+    # Both demand signals, surfaced for transparency (residents vs travelers).
+    from .scoring import residential_score, traffic_score
+    pav["residential_suit"] = [round(residential_score(fc), 3) for fc in pav["functional_class"]]
+    pav["traffic_suit"] = [round(traffic_score(fc), 3) for fc in pav["functional_class"]]
+
     return gpd.GeoDataFrame(pav, geometry="geometry", crs=config.WGS84)

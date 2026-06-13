@@ -27,7 +27,7 @@ _FEATURE_PROPS = [
     "cand_id", "address_st", "score", "verdict", "gated", "gate_reasons", "components",
     "pci", "label", "length_ft", "road_width_ft", "dist_to_power_m", "dist_to_ramp_m",
     "obstruction_count", "disqualify_marking", "functional_class",
-    "est_make_ready_usd", "connection_cost_band",
+    "residential_suit", "traffic_suit", "est_make_ready_usd", "connection_cost_band",
 ]
 
 
@@ -41,6 +41,7 @@ def _coerce_filters(filters) -> Filters:
             station_size=filters.get("station_size", config.DEFAULT_SIZE),
             weights=filters.get("weights", {}) or {},
             required_frontage_ft=filters.get("required_frontage_ft"),
+            demand_mix=filters.get("demand_mix", config.DEFAULT_DEMAND_MIX),
         )
     raise TypeError("filters must be a Filters, a dict, or None")
 
@@ -119,6 +120,7 @@ def screen(region=None, filters=None, top_n: int = 25, layers: dict | None = Non
         "filters": {
             "station_size": flt.station_size,
             "required_frontage_ft": flt.required_frontage(),
+            "demand_mix": flt.demand_mix,
             "weights": flt.resolved_weights(),
         },
     }

@@ -31,15 +31,26 @@ def test_fit_score():
     assert S.fit_score(40, 20) == 1.0  # clamped
 
 
-def test_traffic_score_handles_unknown():
-    assert S.traffic_score(7) == config.FCLASS_TRAFFIC[7]
-    assert S.traffic_score(3) == config.FCLASS_TRAFFIC[3]
-    assert S.traffic_score(None) == config.DEFAULT_TRAFFIC_SCORE
-    assert S.traffic_score("not a number") == config.DEFAULT_TRAFFIC_SCORE
-    assert S.traffic_score(99) == config.DEFAULT_TRAFFIC_SCORE  # unmapped class
-    # curbside demand is residential: collector/local outranks a major arterial
-    assert S.traffic_score(6) > S.traffic_score(3)
-    assert S.traffic_score(7) > S.traffic_score(3)
+def test_demand_signals_residential_vs_traffic():
+    # residential: local/collector high, arterial/freeway low
+    assert S.residential_score(7) > S.residential_score(4) > S.residential_score(1)
+    assert S.residential_score(None) == config.DEFAULT_RESIDENTIAL
+    assert S.residential_score(99) == config.DEFAULT_RESIDENTIAL
+    # traveler/through-traffic with curb access: arterial high, freeway and local low
+    assert S.traffic_score(3) > S.traffic_score(5) > S.traffic_score(1)
+    assert S.traffic_score(None) == config.DEFAULT_TRAFFIC
+    assert S.traffic_score("x") == config.DEFAULT_TRAFFIC
+
+
+def test_demand_mix_blends_both_use_cases():
+    local, arterial = 7, 3
+    # all-residential mix favors the local street; all-traveler mix favors the arterial
+    assert S.demand_score(local, mix=1.0) > S.demand_score(arterial, mix=1.0)
+    assert S.demand_score(arterial, mix=0.0) > S.demand_score(local, mix=0.0)
+    # balanced considers both, so a collector (good for either) beats a freeway
+    assert S.demand_score(5, mix=0.5) > S.demand_score(1, mix=0.5)
+    # mix is clamped; out-of-range does not crash or escape [0,1]
+    assert 0.0 <= S.demand_score(4, mix=5.0) <= 1.0
 
 
 def test_pavement_ada_obstruction_bounds():

@@ -50,12 +50,14 @@ refines it with real measurement and the photo.
   (the hard gate). `est_make_ready_usd` exposes the estimate.
 - Fit = an on-street parallel charging space (~20-22 ft; ADA EV space is
   11 x 20 ft). small / medium / large require 20 / 42 / 84 ft for 1 / 2 / 4 ports.
-- Demand is residential, not traffic. Curbside L2 serves residents with no
-  driveway, so the road-class curve favors local and collector streets and
-  penalizes major arterials (where curbside parking is usually restricted). This
-  is the opposite of a DC-fast-charge curve. Real demand wants residential /
-  multifamily density and off-street-parking share; road class is a proxy and a
-  noted data gap to pair in later.
+- Demand has two parts and we score both. Curbside L2 serves residents who park
+  on-street overnight (local and collector streets) AND travelers moving through
+  the city (arterials and collectors with curb access). Each is scored from road
+  class and blended by `demand_mix` (fraction residential; 0.5 balanced by
+  default, 1.0 all-resident, 0.0 all-traveler). Freeways score low for either
+  because curbside parking is impossible there. Each candidate exposes both
+  `residential_suit` and `traffic_suit`. Real signals would be residential /
+  multifamily density and AADT volume; road class is the proxy until those pair in.
 
 ## Data
 
