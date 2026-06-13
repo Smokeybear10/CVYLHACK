@@ -41,13 +41,15 @@ app.add_middleware(
 # ---- request model ----------------------------------------------------------
 
 class SurveyRequest(BaseModel):
-    """All optional. Omit finalists/measurements to run against mock_data (dev/demo)."""
+    """Real runs MUST pass `finalists` + `measurements` (real Cyvl data). Mock stand-ins are
+    refused unless `allow_mock=true` — so mock data can never reach a demo by accident."""
     finalists: Optional[list[dict[str, Any]]] = None       # SiteInput fields per item
     measurements: Optional[dict[str, dict[str, Any]]] = None  # site_id -> Measurements fields
     priorities: Optional[dict[str, Any]] = None            # station_size, required_frontage_ft, weights
     wave_size: Optional[int] = None
     crew_winners: Optional[int] = None
     deep_dive: bool = True
+    allow_mock: bool = False                               # opt-in to mock_data; dev/tests only
 
 
 def _safe(cls, d: dict, ctx: str):
@@ -61,24 +63,23 @@ def _safe(cls, d: dict, ctx: str):
 
 
 def _build(req: SurveyRequest) -> tuple[list[SiteInput], dict[str, Measurements], UserPriorities]:
-    """Map the request (or mocks) into our dataclasses, ignoring unknown keys."""
-    if req.finalists:
-        sites = [_safe(SiteInput, d, f"finalist[{i}]") for i, d in enumerate(req.finalists)]
-    else:
-        sites = mock_data.finalists()
+    """Map the request into our dataclasses. Real runs require finalists + measurements (real
+    Cyvl data); mock stand-ins are refused unless allow_mock is set."""
+    if (not req.finalists or not req.measurements) and not req.allow_mock:
+        raise HTTPException(
+            status_code=400,
+            detail="Provide real Cyvl 'finalists' and 'measurements'. Mock data is dev-only; "
+                   "set allow_mock=true to use it intentionally.",
+        )
 
-    if req.measurements:
-        meas = {sid: _safe(Measurements, d, f"measurements[{sid}]") for sid, d in req.measurements.items()}
-    else:
-        meas = mock_data.measurements()
-
-    if req.priorities:
-        prefs = _safe(UserPriorities, req.priorities, "priorities")
-    else:
-        prefs = mock_data.priorities()
+    sites = (mock_data.finalists() if not req.finalists
+             else [_safe(SiteInput, d, f"finalist[{i}]") for i, d in enumerate(req.finalists)])
+    meas = (mock_data.measurements() if not req.measurements
+            else {sid: _safe(Measurements, d, f"measurements[{sid}]") for sid, d in req.measurements.items()})
+    prefs = _safe(UserPriorities, req.priorities, "priorities") if req.priorities else mock_data.priorities()
 
     # every finalist needs a measurement (real integration guard)
-    if req.finalists or req.measurements:
+    if req.measurements:
         missing = [s.site_id for s in sites if s.site_id not in meas]
         if missing:
             raise HTTPException(status_code=422, detail=f"no measurements for sites: {missing}")

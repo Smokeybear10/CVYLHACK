@@ -24,20 +24,27 @@ def test_health():
     assert r["ok"] is True and r["mode"] == "mock"
 
 
+def test_mock_refused_without_flag():
+    # no finalists/measurements and no allow_mock -> 400 (mock can't reach a demo by accident)
+    r = client.post("/survey", json={"deep_dive": True})
+    assert r.status_code == 400
+
+
 def test_survey_full_run():
-    r = client.post("/survey", json={"deep_dive": True}).json()
+    r = client.post("/survey", json={"deep_dive": True, "allow_mock": True}).json()
     assert len(r["verdicts"]) == 6
     assert r["winners"] == ["seg_001"]
     assert r["crew"][0]["crew"]                 # crew block present on the winner
+    assert r["verdicts"][0]["lon"] is not None  # coords carried for the map
 
 
 def test_survey_no_deep_dive():
-    r = client.post("/survey", json={"deep_dive": False}).json()
+    r = client.post("/survey", json={"deep_dive": False, "allow_mock": True}).json()
     assert "winners" not in r and "crew" not in r
 
 
 def test_stream_emits_events():
-    r = client.post("/survey/stream", json={"deep_dive": True})
+    r = client.post("/survey/stream", json={"deep_dive": True, "allow_mock": True})
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
     body = r.text
@@ -47,7 +54,9 @@ def test_stream_emits_events():
 
 
 def test_incomplete_finalist_returns_422():
-    r = client.post("/survey", json={"finalists": [{"site_id": "x"}]})
+    # both provided (passes the mock guard), but the finalist is missing required fields
+    r = client.post("/survey", json={"finalists": [{"site_id": "x"}],
+                                      "measurements": {"x": _meas_dict("x")}})
     assert r.status_code == 422
 
 

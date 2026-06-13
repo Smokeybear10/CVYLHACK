@@ -65,3 +65,4 @@ def test_mock_gates(site_id, expected):
     assert v.source == "swarm.breadth.mock"
     assert 0.0 <= v.confidence <= 1.0
     assert v.evidence_image_url  # carried through from measurements
+    assert v.lon == site.lon and v.lat == site.lat  # coords carried for the map viz

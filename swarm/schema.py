@@ -74,6 +74,8 @@ class Verdict:
     source: str = "swarm.breadth"               # or swarm.crew.judge
     crew: Optional[dict[str, Any]] = None        # populated only on the winner deep-dive
     error: Optional[str] = None                  # set when an agent failed; frontend shows it distinctly
+    lon: Optional[float] = None                  # carried from the site so the map can place the pin
+    lat: Optional[float] = None                  # (frontend animates the route, stops, drops this verdict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

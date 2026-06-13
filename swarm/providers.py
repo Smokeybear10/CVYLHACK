@@ -158,5 +158,5 @@ def surveyor_verdict(site: SiteInput, meas: Measurements, prefs: UserPriorities)
         source = "swarm.breadth.mock"
     return Verdict(
         site_id=site.site_id, evidence_image_url=meas.evidence_image_url, source=source,
-        **_normalize(data),
+        lon=site.lon, lat=site.lat, **_normalize(data),
     )

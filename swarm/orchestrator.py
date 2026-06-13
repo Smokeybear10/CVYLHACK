@@ -46,6 +46,7 @@ def _error_verdict(site: SiteInput, msg: str, evidence_url: str = "") -> Verdict
         rationale=msg, positives=[], concerns=["survey error"],
         verify_on_site=["re-run survey for this site"], evidence_image_url=evidence_url,
         sub_scores={}, source="swarm.breadth.error", error=msg,
+        lon=site.lon, lat=site.lat,
     )
 
 
@@ -142,4 +143,4 @@ def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verd
             "positives", "concerns", "verify_on_site", "sub_scores")}
     return Verdict(site_id=site.site_id, evidence_image_url=meas.evidence_image_url,
                    source="swarm.crew.judge" + ("" if providers.have_key() else ".mock"),
-                   crew=crew, **base)
+                   crew=crew, lon=site.lon, lat=site.lat, **base)

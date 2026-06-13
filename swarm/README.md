@@ -37,15 +37,19 @@ uvicorn swarm.service:app --reload --port 8000
 | `POST /survey` | `SurveyRequest` | `{verdicts[], winners[], crew[]}` |
 | `POST /survey/stream` | `SurveyRequest` | SSE: `verdict` per finalist, then `winner`, then `done` |
 
-`SurveyRequest` (every field optional — omit `finalists`/`measurements` to run on mock data):
+`SurveyRequest` — real runs MUST pass `finalists` + `measurements` (real Cyvl data). Omitting
+either is refused with 400 unless `allow_mock: true` (dev/tests only), so mock data can never reach
+a demo by accident.
 ```json
 {
   "priorities": {"station_size": "curbside_l2", "required_frontage_ft": 18, "weights": {"power":1,"traffic":0.8,"fit":1.2}},
   "finalists": [ { ...SiteInput fields... } ],
   "measurements": { "seg_001": { ...Measurements fields... } },
-  "wave_size": 6, "crew_winners": 1, "deep_dive": true
+  "wave_size": 6, "crew_winners": 1, "deep_dive": true,
+  "allow_mock": false
 }
 ```
+Each verdict carries `lon`/`lat` so the frontend can animate the route and drop the pin at the site.
 
 SSE for the live map — each event is `event: verdict\ndata: {Verdict json}`:
 ```js
