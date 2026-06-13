@@ -30,10 +30,23 @@ def _cache_key(site: SiteInput, prefs: UserPriorities) -> str:
 
 def _cache_get(key: str) -> Verdict | None:
     p = CACHE_DIR / f"{key}.json"
-    if p.exists():
-        d = json.loads(p.read_text())
-        return Verdict(**d)
-    return None
+    if not p.exists():
+        return None
+    try:
+        return Verdict(**json.loads(p.read_text()))
+    except (json.JSONDecodeError, TypeError, ValueError, OSError):
+        return None  # stale/incompatible cache file -> treat as a miss
+
+
+def _error_verdict(site: SiteInput, msg: str, evidence_url: str = "") -> Verdict:
+    """A clearly-flagged failure for one site so a single bad agent can't kill the run/stream."""
+    return Verdict(
+        site_id=site.site_id, verdict="no_go", confidence=0.0,
+        one_line_reason="Survey could not complete for this site.",
+        rationale=msg, positives=[], concerns=["survey error"],
+        verify_on_site=["re-run survey for this site"], evidence_image_url=evidence_url,
+        sub_scores={}, source="swarm.breadth.error", error=msg,
+    )
 
 
 def _cache_put(key: str, v: Verdict) -> None:
@@ -48,13 +61,23 @@ def run_breadth(
     wave_size: int = 6,
     use_cache: bool = True,
 ) -> Iterator[Verdict]:
-    """Survey every finalist, ~wave_size agents at a time, yielding verdicts as they land."""
+    """Survey every finalist, ~wave_size agents at a time, yielding verdicts as they land.
+
+    One failing agent yields a flagged error verdict instead of killing the whole run/stream.
+    Respects config.MAX_BREADTH_SITES as a hard cost cap.
+    """
     pending = list(sites)
+    if config.MAX_BREADTH_SITES:
+        pending = pending[: config.MAX_BREADTH_SITES]
+    wave_size = max(1, wave_size)
     while pending:
         wave, pending = pending[:wave_size], pending[wave_size:]
         with ThreadPoolExecutor(max_workers=wave_size) as ex:
             futs = {}
             for site in wave:
+                if site.site_id not in measurements:
+                    yield _error_verdict(site, f"no measurements for {site.site_id}")
+                    continue
                 key = _cache_key(site, prefs)
                 if use_cache and (cached := _cache_get(key)):
                     yield cached
@@ -62,7 +85,12 @@ def run_breadth(
                 futs[ex.submit(providers.surveyor_verdict, site, measurements[site.site_id], prefs)] = (site, key)
             for fut in as_completed(futs):
                 site, key = futs[fut]
-                v = fut.result()
+                try:
+                    v = fut.result()
+                except Exception as e:  # one bad agent must not sink the run
+                    yield _error_verdict(site, f"{type(e).__name__}: {e}",
+                                         measurements[site.site_id].evidence_image_url)
+                    continue
                 if use_cache:
                     _cache_put(key, v)
                 yield v
@@ -96,9 +124,7 @@ def run_crew(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> Verd
         data = providers._parse_json(
             providers._call_model(prompts.JUDGE_SYSTEM, judge_user, model=config.CREW_MODEL, max_tokens=1200))
         crew = data.get("crew", findings)
-        base = {k: data[k] for k in (
-            "verdict", "confidence", "one_line_reason", "rationale",
-            "positives", "concerns", "verify_on_site", "sub_scores")}
+        base = providers._normalize(data)
     else:
         # mock crew: derive from the breadth mock and synthesize specialist findings
         bv = providers.surveyor_verdict(site, meas, prefs)

@@ -40,12 +40,10 @@ frontage, or a no-parking / fire lane. If you find one, downgrade and cite what 
 willingness, lot interiors, anything behind a fence. Put these in verify_on_site.
 
 Output STRICT JSON only, no prose outside it, matching this schema:
-%s
+""" + json.dumps(VERDICT_JSON_SCHEMA, indent=2) + """
 
 Keep one_line_reason under 20 words. positives/concerns are short phrases that cite values. \
-sub_scores echoes the dimensions you weighed (fit, power, traffic, pavement) as 0-1.""" % json.dumps(
-    VERDICT_JSON_SCHEMA, indent=2
-)
+sub_scores echoes the dimensions you weighed (fit, power, traffic, pavement) as 0-1."""
 
 
 def _facts_block(site: SiteInput, meas: Measurements, prefs: UserPriorities) -> str:

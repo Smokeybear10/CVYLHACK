@@ -21,7 +21,7 @@ import json
 from dataclasses import fields
 from typing import Any, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -50,26 +50,38 @@ class SurveyRequest(BaseModel):
     deep_dive: bool = True
 
 
+def _safe(cls, d: dict, ctx: str):
+    """Construct a dataclass from a dict, ignoring unknown keys; 422 on missing required fields."""
+    names = {f.name for f in fields(cls)}
+    kw = {k: v for k, v in d.items() if k in names}
+    try:
+        return cls(**kw)
+    except TypeError as e:
+        raise HTTPException(status_code=422, detail=f"{ctx}: {e}")
+
+
 def _build(req: SurveyRequest) -> tuple[list[SiteInput], dict[str, Measurements], UserPriorities]:
     """Map the request (or mocks) into our dataclasses, ignoring unknown keys."""
-    def pick(cls, d: dict) -> dict:
-        names = {f.name for f in fields(cls)}
-        return {k: v for k, v in d.items() if k in names}
-
     if req.finalists:
-        sites = [SiteInput(**pick(SiteInput, d)) for d in req.finalists]
+        sites = [_safe(SiteInput, d, f"finalist[{i}]") for i, d in enumerate(req.finalists)]
     else:
         sites = mock_data.finalists()
 
     if req.measurements:
-        meas = {sid: Measurements(**pick(Measurements, d)) for sid, d in req.measurements.items()}
+        meas = {sid: _safe(Measurements, d, f"measurements[{sid}]") for sid, d in req.measurements.items()}
     else:
         meas = mock_data.measurements()
 
     if req.priorities:
-        prefs = UserPriorities(**pick(UserPriorities, req.priorities))
+        prefs = _safe(UserPriorities, req.priorities, "priorities")
     else:
         prefs = mock_data.priorities()
+
+    # every finalist needs a measurement (real integration guard)
+    if req.finalists or req.measurements:
+        missing = [s.site_id for s in sites if s.site_id not in meas]
+        if missing:
+            raise HTTPException(status_code=422, detail=f"no measurements for sites: {missing}")
     return sites, meas, prefs
 
 
@@ -98,7 +110,12 @@ def survey(req: SurveyRequest) -> dict[str, Any]:
     if req.deep_dive:
         winners = pick_winners(verdicts, sites, n=n_win)
         by_id = {s.site_id: s for s in sites}
-        crew = [run_crew(by_id[w], meas[w], prefs).to_dict() for w in winners]
+        crew = []
+        for w in winners:
+            try:
+                crew.append(run_crew(by_id[w], meas[w], prefs).to_dict())
+            except Exception as e:
+                crew.append({"site_id": w, "error": str(e)})
         result["winners"] = winners
         result["crew"] = crew
     return result
@@ -123,8 +140,11 @@ def survey_stream(req: SurveyRequest) -> StreamingResponse:
         if req.deep_dive and verdicts:
             by_id = {s.site_id: s for s in sites}
             for w in pick_winners(verdicts, sites, n=n_win):
-                cv = run_crew(by_id[w], meas[w], prefs)
-                yield sse("winner", cv.to_dict())
+                try:
+                    cv = run_crew(by_id[w], meas[w], prefs)
+                    yield sse("winner", cv.to_dict())
+                except Exception as e:
+                    yield sse("error", {"site_id": w, "error": str(e)})
         yield sse("done", {"count": len(verdicts)})
 
     return StreamingResponse(gen(), media_type="text/event-stream")

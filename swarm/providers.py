@@ -51,7 +51,44 @@ def _parse_json(text: str) -> dict[str, Any]:
     if text.startswith("```"):
         text = text.split("```", 2)[1].lstrip("json").strip()
     start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError("no JSON object found in model output")
     return json.loads(text[start : end + 1])
+
+
+# required verdict keys -> (default, type). Used to make model output safe to construct a Verdict.
+_REQUIRED: dict[str, Any] = {
+    "verdict": ("conditional", str),
+    "confidence": (0.5, float),
+    "one_line_reason": ("", str),
+    "rationale": ("", str),
+    "positives": ([], list),
+    "concerns": ([], list),
+    "verify_on_site": ([], list),
+    "sub_scores": ({}, dict),
+}
+
+
+def _normalize(data: dict[str, Any]) -> dict[str, Any]:
+    """Coerce model/mock output into the exact keys/types a Verdict needs. Never raises."""
+    out: dict[str, Any] = {}
+    for k, (default, typ) in _REQUIRED.items():
+        v = data.get(k, default)
+        if typ is float:
+            try:
+                v = max(0.0, min(1.0, float(v)))
+            except (TypeError, ValueError):
+                v = default
+        elif typ is list:
+            v = list(v) if isinstance(v, (list, tuple)) else ([str(v)] if v else [])
+        elif typ is dict:
+            v = v if isinstance(v, dict) else {}
+        elif typ is str:
+            v = v if isinstance(v, str) else str(v)
+        out[k] = v
+    if out["verdict"] not in ("go", "conditional", "no_go"):
+        out["verdict"] = "conditional"
+    return out
 
 
 # ---- mock verdict (no key / no CV) ------------------------------------------
@@ -121,7 +158,5 @@ def surveyor_verdict(site: SiteInput, meas: Measurements, prefs: UserPriorities)
         source = "swarm.breadth.mock"
     return Verdict(
         site_id=site.site_id, evidence_image_url=meas.evidence_image_url, source=source,
-        **{k: data[k] for k in (
-            "verdict", "confidence", "one_line_reason", "rationale",
-            "positives", "concerns", "verify_on_site", "sub_scores")},
+        **_normalize(data),
     )

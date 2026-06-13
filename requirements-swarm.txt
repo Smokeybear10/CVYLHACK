@@ -7,3 +7,7 @@ uvicorn[standard]>=0.29
 
 # Real-agent mode (set ANTHROPIC_API_KEY)
 anthropic>=0.40
+
+# Tests (mock mode, no key)
+pytest>=8
+

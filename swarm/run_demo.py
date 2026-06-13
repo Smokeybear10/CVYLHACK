@@ -47,6 +47,9 @@ def main() -> None:
             return
         raise
 
+    if not verdicts:
+        print("\nno finalists to survey.")
+        return
     winners = pick_winners(verdicts, sites, n=1)
     print(f"\n== winner deep-dive: {winners[0]} ==")
     site = next(s for s in sites if s.site_id == winners[0])

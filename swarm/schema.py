@@ -73,6 +73,7 @@ class Verdict:
     sub_scores: dict[str, float]
     source: str = "swarm.breadth"               # or swarm.crew.judge
     crew: Optional[dict[str, Any]] = None        # populated only on the winner deep-dive
+    error: Optional[str] = None                  # set when an agent failed; frontend shows it distinctly
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
