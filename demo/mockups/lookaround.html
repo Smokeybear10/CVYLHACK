@@ -73,6 +73,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--s
  <button class="btn key" id="recenter">&#9678;&ensp;Nearest</button>
  <span id="pos">&ndash;</span>
  <button class="btn" id="next">Next&ensp;&#8250;</button>
+ <button class="btn key" id="viewcad" title="Open the 3D CAD model of this site">View in CAD&ensp;&#8599;</button>
 </div>
 <div class="note glass"><span class="dot"></span>Real Cyvl 360 capture &middot; <b id="total">&ndash;</b> panoramas &middot; drag to look, scroll to zoom</div>
 <script>
@@ -80,6 +81,8 @@ const P=window.PANOS;
 const qs=new URLSearchParams(location.search);
 const site={lat:parseFloat(qs.get('lat')),lng:parseFloat(qs.get('lng')),id:qs.get('site')||'',addr:qs.get('addr')||''};
 const hasSite=isFinite(site.lat)&&isFinite(site.lng);
+const CAD_SITE='IA17248',CAD_URL='http://localhost:8081/index.html';
+document.getElementById('viewcad').onclick=()=>{const u=site.id===CAD_SITE?CAD_URL:('autodesk-prerender.html?site='+encodeURIComponent(site.id)+'&addr='+encodeURIComponent(site.addr||''));window.open(u,'_blank','noopener')};
 function fail(m){document.getElementById('err').style.display='grid';document.getElementById('err').textContent=m;}
 if(!P||!P.id||!P.id.length){fail('Panorama index not loaded.');}
 else{

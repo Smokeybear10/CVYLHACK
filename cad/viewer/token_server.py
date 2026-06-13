@@ -12,5 +12,5 @@ class H(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-print("open http://localhost:8080/index.html")
-socketserver.TCPServer(("", 8080), H).serve_forever()
+print("open http://localhost:8081/index.html")
+socketserver.TCPServer(("", 8081), H).serve_forever()
