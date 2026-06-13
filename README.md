@@ -12,6 +12,7 @@ Build a startup, not a demo, on top of Cyvl infrastructure data (LiDAR, digital 
 - [docs/CYVL_API.md](docs/CYVL_API.md) — REST API reference, pulled from the live OpenAPI spec.
 - [docs/SPATIAL_SDK.md](docs/SPATIAL_SDK.md) — the Python `cyvl` SDK (3D<->2D projection, LiDAR, viewer).
 - [docs/IDEAS.md](docs/IDEAS.md) — team idea shortlist plus the official prompts.
+- [platform_export/](platform_export/) — Somerville layers exported from the platform (shapefiles + GeoJSON), including the routable street centerline. See its README.
 - [CLAUDE.md](CLAUDE.md) — instructions for Claude Code in this repo.
 
 ## Key links
