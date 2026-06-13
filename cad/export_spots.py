@@ -49,6 +49,12 @@ def main():
     else:
         spots = from_pavements()
 
+    # add a Google-Maps-ready "latlon" string (LAT first) so no one swaps the order
+    for s in spots:
+        if s.get("lat") is not None and s.get("lon") is not None:
+            s["latlon"] = f"{s['lat']}, {s['lon']}"     # paste straight into Google Maps
+            s["maps_url"] = f"https://www.google.com/maps?q={s['lat']},{s['lon']}"
+
     by_street = defaultdict(list)
     for s in spots:
         by_street[s.get("address_st") or "Unknown"].append(s)
