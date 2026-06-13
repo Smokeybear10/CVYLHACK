@@ -42,11 +42,19 @@ def test_ev_charger_named_parts_share_prefix():
     assert all(" " not in n for n in names)          # no spaces -> stays selectable in APS Viewer
     assert all(o["verts"] and o["faces"] for o in objs)
     mats = {o["material"] for o in objs}
-    assert {"ev_accent", "ev_body", "ev_beacon"}.issubset(mats)  # teal bar, body, locator beacon
+    assert {"ev_accent", "ev_body", "ev_marker"}.issubset(mats)  # teal bar, body, magenta locator
 
     # beacon can be turned off
     assert not any(n.endswith("_beacon") for n in
                    [o["name"] for o in ev_charger_objects([{"x": 0, "y": 0, "ground_z": 0}], beacon=False)])
+
+
+def test_futuristic_style_white_curved():
+    objs = ev_charger_objects([{"x": 0, "y": 0, "ground_z": 0}], style="futuristic", start=2)
+    names = [o["name"] for o in objs]
+    assert all(n.startswith("ev_charger_02") for n in names)   # start index respected
+    mats = {o["material"] for o in objs}
+    assert "ev_white" in mats and "ev_cyan" in mats and "ev_marker2" in mats
 
 
 def test_ev_station_alias_still_works():

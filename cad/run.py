@@ -20,7 +20,7 @@ from pipeline.crop import las_crs
 from pipeline.segment import split_ground, classify_ground3, load_road_lines, load_asset_lines, _obb
 from pipeline.lift_assets import lift_assets
 from pipeline.classify_io import write_colored_las
-from pipeline.to_cad import write_obj, write_mtl, car_objects, asset_objects, ev_station_objects
+from pipeline.to_cad import write_obj, write_mtl, car_objects, asset_objects, ev_charger_objects
 from pipeline.ground_mesh import ground_grid_mesh
 from aps.auth import get_token
 from aps.upload import ensure_bucket, upload_object
@@ -147,54 +147,65 @@ for o in bld_objs:
 
 ground_objs = ground_grid_mesh(ground_shift, labels, (0, 0, ROI_M, ROI_M), cell=0.5)
 
-# Sonder: auto-place the EV charger on an OPEN CURBSIDE spot near the validated location.
-# We pick a sidewalk point close to the target that is clear of every tree/pole/hydrant/car, so the
-# charger always lands on an open curb, never inside an obstacle. No manual placement.
-stations = []
+# Sonder: auto-place TWO EV chargers on OPEN CURBSIDE spots near the validated location.
+# charger 1 = ChargePoint CT4000-style pedestal (closest open curb to the target);
+# charger 2 = a futuristic curbside fast charger, placed on another open curb a bit down the block.
+# Both land on sidewalk points clear of every tree/pole/hydrant/car. No manual placement.
+charger_objs, placements = [], []
 _site_path = os.environ.get("SONDER_SITE")
 if _site_path:
     from pyproj import Transformer
+    fwd = Transformer.from_crs(4326, crs, always_xy=True)
+    inv = Transformer.from_crs(crs, 4326, always_xy=True)
     loc = json.load(open(_site_path))
-    wx, wy = Transformer.from_crs(4326, crs, always_xy=True).transform(loc["lon"], loc["lat"])
+    wx, wy = fwd.transform(loc["lon"], loc["lat"])
     tx, ty = wx - ox, wy - oy                          # target in local-shifted coords
-    CLEAR = float(os.environ.get("SONDER_CLEAR_M", 1.5))   # min distance to any obstacle
+    yaw = np.radians(loc.get("bearing", 0.0))
+    CLEAR = float(os.environ.get("SONDER_CLEAR_M", 1.5))
 
     obstacles = [(a["x"], a["y"]) for a in assets] + [(b["center"][0], b["center"][1]) for b in cars]
     obst = np.array(obstacles) if obstacles else np.empty((0, 2))
 
-    def clearance_arr(pts):                            # min distance from each pt to any obstacle
+    def clearance_arr(pts):
         if len(obst) == 0:
             return np.full(len(pts), 1e9)
-        d = np.hypot(pts[:, None, 0] - obst[None, :, 0], pts[:, None, 1] - obst[None, :, 1])
-        return d.min(axis=1)
+        return np.hypot(pts[:, None, 0] - obst[None, :, 0], pts[:, None, 1] - obst[None, :, 1]).min(axis=1)
 
     labels_arr = np.array(labels)
-    sw = ground_ds[labels_arr == "sidewalk"][:, :2] - np.array([ox, oy])   # sidewalk pts, local
-    near = sw[np.hypot(sw[:, 0] - tx, sw[:, 1] - ty) < 30.0] if len(sw) else sw
-    bx, by = tx, ty
-    if len(near):
-        cl = clearance_arr(near)
-        dist = np.hypot(near[:, 0] - tx, near[:, 1] - ty)
-        ok = np.where(cl >= CLEAR)[0]
-        pick = ok[np.argmin(dist[ok])] if len(ok) else int(np.argmax(cl))  # closest clear, else most clear
-        bx, by = float(near[pick, 0]), float(near[pick, 1])
-        best = float(cl[pick])
-    else:
-        best = 1e9
-    gz = float(ground_ds[cKDTree(ground_ds[:, :2]).query([bx + ox, by + oy])[1], 2])
-    stations = [{"x": bx, "y": by, "ground_z": gz, "yaw": np.radians(loc.get("bearing", 0.0))}]
-    # report where it landed in lon/lat so the frontend / you know exactly where on the map
-    clon, clat = Transformer.from_crs(crs, 4326, always_xy=True).transform(bx + ox, by + oy)
-    json.dump({"cand_id": loc.get("cand_id"), "lon": clon, "lat": clat,
-               "local_xy": [bx, by], "clearance_m": best}, open("out/charger_placement.json", "w"), indent=2)
-    print(f"EV charger placed on open curb at lon/lat ({clon:.6f},{clat:.6f}); clearance {best:.1f} m; "
-          f"{np.hypot(bx-tx, by-ty):.1f} m from target")
+    sw = ground_ds[labels_arr == "sidewalk"][:, :2] - np.array([ox, oy])     # sidewalk pts, local
+    clear_sw = sw[clearance_arr(sw) >= CLEAR] if len(sw) else sw             # open curb points
 
-objs = ground_objs + bld_objs + car_objects(cars) + asset_objects(assets) + ev_station_objects(stations)
+    def gz_at(px, py):
+        return float(ground_ds[cKDTree(ground_ds[:, :2]).query([px + ox, py + oy])[1], 2])
+
+    def make(px, py, style, idx):
+        st = {"x": float(px), "y": float(py), "ground_z": gz_at(px, py), "yaw": yaw}
+        clon, clat = inv.transform(px + ox, py + oy)
+        placements.append({"name": f"ev_charger_{idx:02d}", "style": style,
+                           "lat": clat, "lon": clon, "latlon": f"{clat}, {clon}"})
+        return ev_charger_objects([st], style=style, start=idx)
+
+    if len(clear_sw):
+        # charger 1: closest open curb to the target
+        p1 = clear_sw[np.argmin(np.hypot(clear_sw[:, 0] - tx, clear_sw[:, 1] - ty))]
+        charger_objs += make(p1[0], p1[1], "pedestal", 1)
+        # charger 2: an open curb 20-45 m away (down the block / other side) for a second site
+        d = np.hypot(clear_sw[:, 0] - p1[0], clear_sw[:, 1] - p1[1])
+        far = clear_sw[(d > 20) & (d < 45)]
+        if len(far):
+            p2 = far[np.argmin(np.hypot(far[:, 0] - tx, far[:, 1] - ty))]
+        else:
+            p2 = clear_sw[int(np.argmax(d))]
+        charger_objs += make(p2[0], p2[1], "futuristic", 2)
+    json.dump(placements, open("out/charger_placement.json", "w"), indent=2)
+    for p in placements:
+        print(f"  {p['name']} ({p['style']}) on open curb at  {p['latlon']}  [Google Maps order]")
+
+objs = ground_objs + bld_objs + car_objects(cars) + asset_objects(assets) + charger_objs
 write_mtl("out/scene.mtl")
 write_obj("out/scene.obj", objs, mtl_filename="scene.mtl")
 print(f"scene.obj objects: {len(objs)} (ground {len(ground_objs)} + cars {len(cars)} + "
-      f"assets {len(assets)} + ev_stations {len(stations)})")
+      f"assets {len(assets)} + chargers {len(placements)})")
 
 # zip OBJ + MTL (Model Derivative needs a zip for multi-file inputs)
 import zipfile

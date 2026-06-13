@@ -1,9 +1,16 @@
-{
-  "address": "near 387 Highland Avenue, Ball Square, Somerville, MA 02144",
-  "lat": 42.39539715803472,
-  "lon": -71.11963504038926,
-  "google_maps_paste": "42.39539715803472, -71.11963504038926",
-  "google_maps_url": "https://www.google.com/maps?q=42.39539715803472,-71.11963504038926",
-  "clearance_m": 1.51,
-  "note": "Order matters: Google Maps and most tools want lat,lon (latitude first). GeoJSON/Cyvl store lon,lat. Address reverse-geocoded via OSM Nominatim."
-}
+[
+  {
+    "name": "ev_charger_01",
+    "style": "pedestal",
+    "lat": 42.39539715803472,
+    "lon": -71.11963504038926,
+    "latlon": "42.39539715803472, -71.11963504038926"
+  },
+  {
+    "name": "ev_charger_02",
+    "style": "futuristic",
+    "lat": 42.39533983640961,
+    "lon": -71.11986540808148,
+    "latlon": "42.39533983640961, -71.11986540808148"
+  }
+]

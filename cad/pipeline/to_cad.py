@@ -27,6 +27,11 @@ MATERIALS = {
     "ev_base":   (0.27, 0.27, 0.30),  # mounting plinth
     "ev_screen": (0.08, 0.10, 0.13),  # display
     "ev_beacon": (0.87, 1.00, 0.00),  # bright locator beacon (so you can spot the charger)
+    "ev_marker": (1.00, 0.05, 0.55),  # hot-magenta locator pillar (charger 1)
+    # futuristic curbside fast charger (modern monolith, no brand)
+    "ev_white":  (0.93, 0.94, 0.96),  # sleek white shell
+    "ev_cyan":   (0.00, 0.80, 0.92),  # cyan light strip
+    "ev_marker2":(0.10, 0.85, 1.00),  # cyan locator pillar (charger 2)
 }
 
 
@@ -136,47 +141,64 @@ def asset_objects(assets):
 
 # ---------- Sonder: EV charging station ----------
 
-def ev_charger_objects(chargers, beacon=True):
-    """Sonder: a realistic-but-simple curbside Level 2 EV charger (ChargePoint CT4000-class).
+def ev_charger_objects(chargers, style="pedestal", start=1, beacon=True):
+    """Sonder: a curbside EV charger placed in the scene's local-shifted UTM frame.
 
-    chargers: list of {x, y, ground_z, yaw} in the scene's local-shifted UTM frame.
-    Real reference (ChargePoint CT4000 site design guide): pedestal 6-8 ft tall (~2 m), slim body on
-    a base plinth, a wider head with a dark screen and a teal status light bar, DUAL ports (a cable
-    holster + J1772 connector on each side).
-
-    beacon=True adds a tall bright locator pole above the charger so it is easy to spot in a big
-    street scene. Each part is its own named OBJ group sharing the prefix `ev_charger_NN`.
+    chargers: list of {x, y, ground_z, yaw}.
+    style="pedestal"   -> ChargePoint CT4000-class: slim body on a plinth, head with a dark screen
+                          and teal status bar, DUAL ports (holster + J1772 each side). Magenta locator.
+    style="futuristic" -> modern curbside fast charger (Tesla-curbside-inspired, no brand): a sleek
+                          curved WHITE monolith (rounded cylinder body + tapered cap) with a cyan
+                          light strip and a connector. Cyan locator.
+    start: index for the name prefix (ev_charger_01, ev_charger_02, ...) so multiple chargers are
+           uniquely named. beacon=True adds a giant locator pillar so it is easy to find in a big block.
     """
     def world(x, y, yaw, lx, ly):
         c, s = math.cos(yaw), math.sin(yaw)
         return (x + lx * c - ly * s, y + lx * s + ly * c)
 
     objs = []
-    for i, ch in enumerate(chargers, 1):
+    for i, ch in enumerate(chargers, start):
         x, y, z0 = ch["x"], ch["y"], ch["ground_z"]
         yaw = ch.get("yaw", 0.0)
         nm = f"ev_charger_{i:02d}"
 
-        def part(suffix, material, center, size):
+        def box(suffix, material, center, size):
             v, f = mesh_box(center, size, yaw)
             objs.append({"name": nm + suffix, "material": material, "verts": v, "faces": f})
 
-        part("_base", "ev_base", (x, y, z0 + 0.08), (0.42, 0.38, 0.16))           # plinth on the curb
-        part("_pole", "ev_body", (x, y, z0 + 0.85), (0.20, 0.20, 1.40))           # body (taller, ~2 m)
-        part("_head", "ev_body", (x, y, z0 + 1.78), (0.44, 0.32, 0.52))           # head
-        sx, sy = world(x, y, yaw, 0.17, 0.0)                                       # screen on front
-        part("_screen", "ev_screen", (sx, sy, z0 + 1.80), (0.04, 0.26, 0.22))
-        lx, ly = world(x, y, yaw, 0.18, 0.0)                                       # teal status bar
-        part("_light", "ev_accent", (lx, ly, z0 + 2.00), (0.06, 0.34, 0.06))
-        # DUAL ports: holster + connector on both sides
-        for side, sfx in ((0.20, "a"), (-0.20, "b")):
-            hx, hy = world(x, y, yaw, 0.0, side)
-            part("_holster_" + sfx, "ev_body", (hx, hy, z0 + 1.20), (0.12, 0.08, 0.20))
-            gx, gy = world(x, y, yaw, 0.04, side * 1.35)
-            gv, gf = mesh_cylinder(gx, gy, z0 + 1.00, 0.045, 0.18)
-            objs.append({"name": nm + "_plug_" + sfx, "material": "metal", "verts": gv, "faces": gf})
-        if beacon:                                                                 # bright locator pole
-            part("_beacon", "ev_beacon", (x, y, z0 + 4.3), (0.10, 0.10, 4.6))
+        def cyl(suffix, material, cx, cy, z, r, h):
+            v, f = mesh_cylinder(cx, cy, z, r, h)
+            objs.append({"name": nm + suffix, "material": material, "verts": v, "faces": f})
+
+        if style == "futuristic":
+            cyl("_base", "ev_base", x, y, z0, 0.32, 0.10)                          # round plinth
+            cyl("_body", "ev_white", x, y, z0 + 0.10, 0.28, 2.05)                  # curved white monolith
+            cv, cf = mesh_cone(x, y, z0 + 2.15, 0.28, 0.45)                        # tapered futuristic cap
+            objs.append({"name": nm + "_cap", "material": "ev_white", "verts": cv, "faces": cf})
+            sx, sy = world(x, y, yaw, 0.27, 0.0)                                   # cyan light strip (front)
+            box("_strip", "ev_cyan", (sx, sy, z0 + 1.25), (0.04, 0.10, 1.70))
+            hx, hy = world(x, y, yaw, 0.26, 0.0)                                   # connector
+            cyl("_plug", "metal", hx, hy, z0 + 1.00, 0.05, 0.20)
+            mk = "ev_marker2"
+        else:  # pedestal (CT4000-class)
+            box("_base", "ev_base", (x, y, z0 + 0.08), (0.42, 0.38, 0.16))
+            box("_pole", "ev_body", (x, y, z0 + 0.85), (0.20, 0.20, 1.40))
+            box("_head", "ev_body", (x, y, z0 + 1.78), (0.44, 0.32, 0.52))
+            sx, sy = world(x, y, yaw, 0.17, 0.0)
+            box("_screen", "ev_screen", (sx, sy, z0 + 1.80), (0.04, 0.26, 0.22))
+            lx, ly = world(x, y, yaw, 0.18, 0.0)
+            box("_light", "ev_accent", (lx, ly, z0 + 2.00), (0.06, 0.34, 0.06))
+            for side, sfx in ((0.20, "a"), (-0.20, "b")):                          # dual ports
+                hx, hy = world(x, y, yaw, 0.0, side)
+                box("_holster_" + sfx, "ev_body", (hx, hy, z0 + 1.20), (0.12, 0.08, 0.20))
+                gx, gy = world(x, y, yaw, 0.04, side * 1.35)
+                cyl("_plug_" + sfx, "metal", gx, gy, z0 + 1.00, 0.045, 0.18)
+            mk = "ev_marker"
+
+        if beacon:                                                                 # giant locator pillar
+            box("_beacon", mk, (x, y, z0 + 6.5), (0.5, 0.5, 12.0))
+            box("_beacontop", mk, (x, y, z0 + 13.0), (1.6, 1.6, 1.6))
     return objs
 
 
