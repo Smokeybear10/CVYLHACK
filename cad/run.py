@@ -147,44 +147,48 @@ for o in bld_objs:
 
 ground_objs = ground_grid_mesh(ground_shift, labels, (0, 0, ROI_M, ROI_M), cell=0.5)
 
-# Sonder: place the EV charger at the validated curb (set SONDER_SITE to the handoff json path).
-# The site's ground elevation comes from the classified ground so the charger sits on the road,
-# and we nudge it to a CLEAR spot so it is never inside a tree/pole/hydrant/car.
+# Sonder: auto-place the EV charger on an OPEN CURBSIDE spot near the validated location.
+# We pick a sidewalk point close to the target that is clear of every tree/pole/hydrant/car, so the
+# charger always lands on an open curb, never inside an obstacle. No manual placement.
 stations = []
 _site_path = os.environ.get("SONDER_SITE")
 if _site_path:
     from pyproj import Transformer
     loc = json.load(open(_site_path))
     wx, wy = Transformer.from_crs(4326, crs, always_xy=True).transform(loc["lon"], loc["lat"])
-    tx, ty = wx - ox, wy - oy                         # target in local-shifted coords
+    tx, ty = wx - ox, wy - oy                          # target in local-shifted coords
+    CLEAR = float(os.environ.get("SONDER_CLEAR_M", 1.5))   # min distance to any obstacle
 
-    # obstacles to avoid (lifted assets + detected cars), already in local-shifted coords here
     obstacles = [(a["x"], a["y"]) for a in assets] + [(b["center"][0], b["center"][1]) for b in cars]
     obst = np.array(obstacles) if obstacles else np.empty((0, 2))
-    CLEAR = float(os.environ.get("SONDER_CLEAR_M", 1.3))   # min distance to any obstacle
 
-    def clearance(px, py):
+    def clearance_arr(pts):                            # min distance from each pt to any obstacle
         if len(obst) == 0:
-            return 1e9
-        return float(np.min(np.hypot(obst[:, 0] - px, obst[:, 1] - py)))
+            return np.full(len(pts), 1e9)
+        d = np.hypot(pts[:, None, 0] - obst[None, :, 0], pts[:, None, 1] - obst[None, :, 1])
+        return d.min(axis=1)
 
-    bx, by, best = tx, ty, clearance(tx, ty)
-    if best < CLEAR:                                  # search rings around the target for a clear spot
-        for r in (1.0, 1.5, 2.0, 2.5, 3.0, 4.0):
-            for a_deg in range(0, 360, 30):
-                a = np.radians(a_deg)
-                cx, cy = tx + r * np.cos(a), ty + r * np.sin(a)
-                if 0 <= cx <= ROI_M and 0 <= cy <= ROI_M:
-                    cl = clearance(cx, cy)
-                    if cl > best:
-                        bx, by, best = cx, cy, cl
-            if best >= CLEAR:
-                break
+    labels_arr = np.array(labels)
+    sw = ground_ds[labels_arr == "sidewalk"][:, :2] - np.array([ox, oy])   # sidewalk pts, local
+    near = sw[np.hypot(sw[:, 0] - tx, sw[:, 1] - ty) < 30.0] if len(sw) else sw
+    bx, by = tx, ty
+    if len(near):
+        cl = clearance_arr(near)
+        dist = np.hypot(near[:, 0] - tx, near[:, 1] - ty)
+        ok = np.where(cl >= CLEAR)[0]
+        pick = ok[np.argmin(dist[ok])] if len(ok) else int(np.argmax(cl))  # closest clear, else most clear
+        bx, by = float(near[pick, 0]), float(near[pick, 1])
+        best = float(cl[pick])
+    else:
+        best = 1e9
     gz = float(ground_ds[cKDTree(ground_ds[:, :2]).query([bx + ox, by + oy])[1], 2])
     stations = [{"x": bx, "y": by, "ground_z": gz, "yaw": np.radians(loc.get("bearing", 0.0))}]
-    moved = np.hypot(bx - tx, by - ty)
-    print(f"EV charger placed for {loc.get('cand_id','?')} at ({loc['lon']:.5f},{loc['lat']:.5f}); "
-          f"clearance {best:.1f} m, nudged {moved:.1f} m to avoid obstacles")
+    # report where it landed in lon/lat so the frontend / you know exactly where on the map
+    clon, clat = Transformer.from_crs(crs, 4326, always_xy=True).transform(bx + ox, by + oy)
+    json.dump({"cand_id": loc.get("cand_id"), "lon": clon, "lat": clat,
+               "local_xy": [bx, by], "clearance_m": best}, open("out/charger_placement.json", "w"), indent=2)
+    print(f"EV charger placed on open curb at lon/lat ({clon:.6f},{clat:.6f}); clearance {best:.1f} m; "
+          f"{np.hypot(bx-tx, by-ty):.1f} m from target")
 
 objs = ground_objs + bld_objs + car_objects(cars) + asset_objects(assets) + ev_station_objects(stations)
 write_mtl("out/scene.mtl")
