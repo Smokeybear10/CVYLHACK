@@ -1,0 +1,9 @@
+# Screening stage dependencies. Install into a Python 3.11+ venv:
+#   python3.12 -m venv .venv && .venv/bin/pip install -r screening/requirements.txt
+geopandas>=1.0
+shapely>=2.0
+pyproj>=3.6
+pandas>=2.0
+pyarrow>=14
+requests>=2.31
+pytest>=8

@@ -4,6 +4,7 @@
 .DS_Store
 __pycache__/
 *.pyc
+.pytest_cache/
 .venv/
 venv/
 # point cloud / large data
@@ -13,3 +14,8 @@ venv/
 *.ply
 data/
 data_cache/
+.swarm_cache/
+# cached layer downloads (re-fetched from the public bucket on demand)
+_cache/
+*.parquet
+.gstack/
