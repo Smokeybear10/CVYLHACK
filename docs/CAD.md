@@ -181,12 +181,32 @@ A few lines in the swarm `service.py`: when a winner is chosen, write the JSON a
 `Verdict` (it has `lon`, `lat`, `verdict`) plus the finalist's `dist_to_power_m` and
 `est_make_ready_usd`. That is the entire contract between our two lanes.
 
-### 4. Stretch: click-to-place in the Viewer
+### 4. The adjust controls (built): drag + sliders
 
-Xavier's viewer already moves a selected node via fragment proxies. To let the user drop a charger
-(or car) by clicking the street: raycast the click to a ground point, then clone or show a station
-node there. Viewer-side addition next to the existing move/delete handlers. The seeded charger in
-step 2 already carries the demo, so this is a nice-to-have.
+`cad/viewer/adjust.js` (loaded after Xavier's `viewer.js`) adds the manual adjust on top of his
+proven fragment-proxy move:
+- click the charger to select it
+- a "drag on ground" checkbox: while on, drag the charger and it follows the cursor across the
+  ground (orbit is locked so the camera does not fight the move)
+- sliders: along curb (X), across (Y), and rotate
+- reset, hide, and the point-cloud toggle
+
+Status: the X/Y move (drag and sliders) reuses Xavier's proven move pattern, so it is solid. The
+ground-drag and rotate use documented Viewer v7 calls (`clientToWorld`, `getNodeBox`,
+`setNavigationLock`, quaternion spin) but want one live check once a real scene loads. Rotate is a
+fine-tune; the auto-placement already orients the charger from the handoff bearing.
+
+## Placement and adjust: who does what
+
+- Automatic placement: `run.py` drops the charger at the swarm-validated curb, oriented by bearing.
+  No human action, no agent action; it lands where the data says.
+- The agents never drag. The swarm only chooses the location (validates the curb). Placement follows
+  from that.
+- Manual adjust is a person, in the frontend viewer: drag the charger or use the sliders to fine-tune
+  along the curb, as the "this is editable CAD, not a flat picture" beat. Optional polish, since the
+  auto-placement is already correct.
+- The frontend owner wires/embeds the viewer into the app; the viewer interactions (drag, sliders,
+  toggles) are ours and live in `cad/viewer/`.
 
 ---
 
