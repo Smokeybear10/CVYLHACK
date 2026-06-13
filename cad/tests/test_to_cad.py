@@ -37,11 +37,16 @@ def test_ev_charger_named_parts_share_prefix():
     # every part is its own selectable node, all sharing the ev_charger_01 prefix (drag as a group)
     assert all(n.startswith("ev_charger_01") for n in names)
     assert {"ev_charger_01_base", "ev_charger_01_pole", "ev_charger_01_head",
-            "ev_charger_01_light", "ev_charger_01_plug"}.issubset(set(names))
+            "ev_charger_01_light", "ev_charger_01_beacon"}.issubset(set(names))
+    assert "ev_charger_01_plug_a" in names and "ev_charger_01_plug_b" in names  # dual port
     assert all(" " not in n for n in names)          # no spaces -> stays selectable in APS Viewer
     assert all(o["verts"] and o["faces"] for o in objs)
     mats = {o["material"] for o in objs}
-    assert "ev_accent" in mats and "ev_body" in mats  # teal light bar + charcoal body
+    assert {"ev_accent", "ev_body", "ev_beacon"}.issubset(mats)  # teal bar, body, locator beacon
+
+    # beacon can be turned off
+    assert not any(n.endswith("_beacon") for n in
+                   [o["name"] for o in ev_charger_objects([{"x": 0, "y": 0, "ground_z": 0}], beacon=False)])
 
 
 def test_ev_station_alias_still_works():

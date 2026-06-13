@@ -26,6 +26,7 @@ MATERIALS = {
     "ev_accent": (0.05, 0.62, 0.55),  # teal status light bar
     "ev_base":   (0.27, 0.27, 0.30),  # mounting plinth
     "ev_screen": (0.08, 0.10, 0.13),  # display
+    "ev_beacon": (0.87, 1.00, 0.00),  # bright locator beacon (so you can spot the charger)
 }
 
 
@@ -135,16 +136,16 @@ def asset_objects(assets):
 
 # ---------- Sonder: EV charging station ----------
 
-def ev_charger_objects(chargers):
+def ev_charger_objects(chargers, beacon=True):
     """Sonder: a realistic-but-simple curbside Level 2 EV charger (ChargePoint CT4000-class).
 
     chargers: list of {x, y, ground_z, yaw} in the scene's local-shifted UTM frame.
-    Real reference: ~1.5 m tall, slim pole on a base plinth, a wider head with a dark screen and a
-    teal status light bar, a side cable holster with a J1772 connector.
+    Real reference (ChargePoint CT4000 site design guide): pedestal 6-8 ft tall (~2 m), slim body on
+    a base plinth, a wider head with a dark screen and a teal status light bar, DUAL ports (a cable
+    holster + J1772 connector on each side).
 
-    Each part is its own named OBJ group sharing the prefix `ev_charger_NN`, so it renders in color
-    AND the viewer drags the whole charger as one unit (move every node with that prefix). No spaces
-    in names (a space would break the selectable node).
+    beacon=True adds a tall bright locator pole above the charger so it is easy to spot in a big
+    street scene. Each part is its own named OBJ group sharing the prefix `ev_charger_NN`.
     """
     def world(x, y, yaw, lx, ly):
         c, s = math.cos(yaw), math.sin(yaw)
@@ -160,22 +161,22 @@ def ev_charger_objects(chargers):
             v, f = mesh_box(center, size, yaw)
             objs.append({"name": nm + suffix, "material": material, "verts": v, "faces": f})
 
-        part("_base", "ev_base", (x, y, z0 + 0.06), (0.38, 0.34, 0.12))          # plinth on the curb
-        part("_pole", "ev_body", (x, y, z0 + 0.60), (0.17, 0.17, 1.00))          # slim pole
-        part("_head", "ev_body", (x, y, z0 + 1.32), (0.38, 0.27, 0.46))          # head
-        # screen + teal light bar + holster + connector, offset off the front/side faces
-        sx, sy = world(x, y, yaw, 0.15, 0.0)                                      # screen on front
-        sv, sf = mesh_box((sx, sy, z0 + 1.34), (0.04, 0.24, 0.20), yaw)
-        objs.append({"name": nm + "_screen", "material": "ev_screen", "verts": sv, "faces": sf})
-        lx, ly = world(x, y, yaw, 0.16, 0.0)
-        lv, lf = mesh_box((lx, ly, z0 + 1.51), (0.05, 0.30, 0.05), yaw)           # teal status bar
-        objs.append({"name": nm + "_light", "material": "ev_accent", "verts": lv, "faces": lf})
-        hx, hy = world(x, y, yaw, 0.0, 0.17)
-        hv, hf = mesh_box((hx, hy, z0 + 1.05), (0.10, 0.07, 0.16), yaw)           # cable holster
-        objs.append({"name": nm + "_holster", "material": "ev_body", "verts": hv, "faces": hf})
-        gx, gy = world(x, y, yaw, 0.02, 0.23)
-        gv, gf = mesh_cylinder(gx, gy, z0 + 0.92, 0.04, 0.16)                     # J1772 connector
-        objs.append({"name": nm + "_plug", "material": "metal", "verts": gv, "faces": gf})
+        part("_base", "ev_base", (x, y, z0 + 0.08), (0.42, 0.38, 0.16))           # plinth on the curb
+        part("_pole", "ev_body", (x, y, z0 + 0.85), (0.20, 0.20, 1.40))           # body (taller, ~2 m)
+        part("_head", "ev_body", (x, y, z0 + 1.78), (0.44, 0.32, 0.52))           # head
+        sx, sy = world(x, y, yaw, 0.17, 0.0)                                       # screen on front
+        part("_screen", "ev_screen", (sx, sy, z0 + 1.80), (0.04, 0.26, 0.22))
+        lx, ly = world(x, y, yaw, 0.18, 0.0)                                       # teal status bar
+        part("_light", "ev_accent", (lx, ly, z0 + 2.00), (0.06, 0.34, 0.06))
+        # DUAL ports: holster + connector on both sides
+        for side, sfx in ((0.20, "a"), (-0.20, "b")):
+            hx, hy = world(x, y, yaw, 0.0, side)
+            part("_holster_" + sfx, "ev_body", (hx, hy, z0 + 1.20), (0.12, 0.08, 0.20))
+            gx, gy = world(x, y, yaw, 0.04, side * 1.35)
+            gv, gf = mesh_cylinder(gx, gy, z0 + 1.00, 0.045, 0.18)
+            objs.append({"name": nm + "_plug_" + sfx, "material": "metal", "verts": gv, "faces": gf})
+        if beacon:                                                                 # bright locator pole
+            part("_beacon", "ev_beacon", (x, y, z0 + 4.3), (0.10, 0.10, 4.6))
     return objs
 
 

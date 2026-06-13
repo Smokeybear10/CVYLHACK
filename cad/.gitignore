@@ -31,5 +31,5 @@ out/
 
 # Generated artifacts (regenerable)
 *.png
-spots_by_street.json
 site.json
+# spots_by_street.json is committed on purpose (the frontend handoff)
