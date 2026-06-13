@@ -5,7 +5,8 @@ the old box_obj/kind API this file used was stale). Also covers Sonder's ev_stat
 All pure-Python: no PDAL, no APS, no data.
 """
 from pipeline.to_cad import (
-    mesh_box, write_obj, write_mtl, car_objects, asset_objects, ev_station_objects, MATERIALS,
+    mesh_box, write_obj, write_mtl, car_objects, asset_objects,
+    ev_charger_objects, ev_station_objects, MATERIALS,
 )
 
 
@@ -30,30 +31,40 @@ def test_write_obj_named_groups_and_offset(tmp_path):
     assert "\nf " in body
 
 
-def test_ev_station_named_selectable_parts():
-    objs = ev_station_objects([{"x": 5.0, "y": 3.0, "ground_z": 0.0, "yaw": 0.0}])
+def test_ev_charger_named_parts_share_prefix():
+    objs = ev_charger_objects([{"x": 5.0, "y": 3.0, "ground_z": 0.0, "yaw": 0.0}])
     names = [o["name"] for o in objs]
-    assert names == ["ev_station_01", "ev_station_01_screen", "ev_station_01_plug"]
+    # every part is its own selectable node, all sharing the ev_charger_01 prefix (drag as a group)
+    assert all(n.startswith("ev_charger_01") for n in names)
+    assert {"ev_charger_01_base", "ev_charger_01_pole", "ev_charger_01_head",
+            "ev_charger_01_light", "ev_charger_01_plug"}.issubset(set(names))
     assert all(" " not in n for n in names)          # no spaces -> stays selectable in APS Viewer
-    assert objs[0]["material"] == "ev_green"
     assert all(o["verts"] and o["faces"] for o in objs)
+    mats = {o["material"] for o in objs}
+    assert "ev_accent" in mats and "ev_body" in mats  # teal light bar + charcoal body
 
 
-def test_ev_station_in_full_scene_obj(tmp_path):
+def test_ev_station_alias_still_works():
+    assert ev_station_objects is ev_charger_objects
+
+
+def test_ev_charger_in_full_scene_obj(tmp_path):
     objs = (car_objects([{"center": (0, 0, 0.75), "length": 4.5, "width": 1.8, "height": 1.5}])
-            + ev_station_objects([{"x": 8.0, "y": 2.0, "ground_z": 0.0, "yaw": 0.7}]))
+            + ev_charger_objects([{"x": 8.0, "y": 2.0, "ground_z": 0.0, "yaw": 0.7}]))
     p = tmp_path / "scene.obj"
     write_obj(str(p), objs, mtl_filename="scene.mtl")
     body = p.read_text()
-    assert "o ev_station_01\n" in body
-    assert "usemtl ev_green" in body
+    assert "o ev_charger_01_head\n" in body
+    assert "usemtl ev_accent" in body
 
 
-def test_ev_green_material_exported(tmp_path):
-    assert "ev_green" in MATERIALS
+def test_ev_materials_exported(tmp_path):
+    for m in ("ev_body", "ev_accent", "ev_base", "ev_screen"):
+        assert m in MATERIALS
     p = tmp_path / "scene.mtl"
     write_mtl(str(p))
-    assert "newmtl ev_green" in p.read_text()
+    txt = p.read_text()
+    assert "newmtl ev_accent" in txt and "newmtl ev_body" in txt
 
 
 def test_asset_objects_skips_ground_assets():

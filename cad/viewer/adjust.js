@@ -124,59 +124,82 @@
     return document.getElementById("sd-state");
   }
 
+  // Multi-part objects (the charger) share a name prefix like "ev_charger_01"; we drag every part
+  // of that prefix as one unit. Single objects (a car) are their own one-member group.
+  function groupKeyForName(name) {
+    var m = name && name.match(/^(ev_charger_\d+)/);
+    return m ? m[1] : null;
+  }
+  function buildGroups() {
+    var tree = viewer.model.getInstanceTree();
+    var groups = {}, dbToKey = {};
+    tree.enumNodeChildren(tree.getRootId(), function (id) {
+      if (tree.getChildCount(id) !== 0) return;       // leaves only
+      var name = tree.getNodeName(id) || String(id);
+      var key = groupKeyForName(name) || ("db_" + id); // charger -> shared key, else its own
+      (groups[key] || (groups[key] = [])).push(id);
+      dbToKey[id] = key;
+    }, true);
+    return { groups: groups, dbToKey: dbToKey };
+  }
+
   function init() {
+    var G = buildGroups();
+    var groupCenter = function (key) {                 // union-box center of all parts in the group
+      var ids = G.groups[key] || [];
+      var minx = Infinity, miny = Infinity, maxx = -Infinity, maxy = -Infinity;
+      ids.forEach(function (id) {
+        var c = nodeCenter(id);
+        if (c.x < minx) minx = c.x; if (c.x > maxx) maxx = c.x;
+        if (c.y < miny) miny = c.y; if (c.y > maxy) maxy = c.y;
+      });
+      return { x: (minx + maxx) / 2, y: (miny + maxy) / 2 };
+    };
     var mover = {
-      move: function (id, dx, dy) { eachFrag(id, function (fp) { fp.position.x += dx; fp.position.y += dy; }); },
-      rotate: function (id, dyaw) {
-        eachFrag(id, function (fp) {
-          fp.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), dyaw));
+      move: function (key, dx, dy) {
+        (G.groups[key] || []).forEach(function (id) {
+          eachFrag(id, function (fp) { fp.position.x += dx; fp.position.y += dy; });
         });
       },
+      rotate: function () {},                          // rotation handled at generation time (bearing)
     };
-    var ctl = createAdjustController({ mover: mover, getCenter: nodeCenter, onError: function () {} });
+    var ctl = createAdjustController({ mover: mover, getCenter: groupCenter, onError: function () {} });
     var stateEl = buildHud(function () { ctl.reset(); });
 
-    function setState(dbId) {
-      stateEl.innerHTML = (dbId == null)
-        ? "Click and drag any object to move it."
-        : "Holding <b>" + nodeName(dbId) + "</b> - drag to place";
+    function label(key) {
+      if (!key) return null;
+      return key.indexOf("ev_charger") === 0 ? "EV charger" : key.replace(/^db_/, "object ");
     }
-    viewer.addEventListener(Autodesk.Viewing.SELECTION_CHANGED_EVENT, function (e) {
-      var id = (e.dbIdArray && e.dbIdArray.length) ? e.dbIdArray[0] : null;
-      ctl.setSelected(id);
-    });
+    function setState(key) {
+      stateEl.innerHTML = (key == null)
+        ? "Click and drag any object to move it."
+        : "Holding <b>" + label(key) + "</b> - drag to place";
+    }
 
-    // ---- pointer drag: grab an object, slide it on the ground (grab-offset keeps it under cursor)
     var dragging = false, grab = { x: 0, y: 0 };
     var canvas = viewer.canvas;
-
-    function worldUnderCursor(ev) {
-      var hit = viewer.clientToWorld(ev.offsetX, ev.offsetY);   // hits scene geometry under cursor
-      return (hit && hit.point) ? hit.point : null;
-    }
 
     canvas.addEventListener("pointerdown", function (ev) {
       if (ev.button !== 0) return;
       var hit = viewer.clientToWorld(ev.offsetX, ev.offsetY);
       var dbId = hit && (hit.dbId != null ? hit.dbId : null);
-      if (dbId == null) return;                       // empty space -> let the camera orbit
-      ctl.setSelected(dbId);
-      try { viewer.select(dbId); } catch (e) {}
-      var c = nodeCenter(dbId);
-      var p = hit.point;
-      grab.x = c.x - p.x; grab.y = c.y - p.y;         // keep the grabbed point under the cursor
+      if (dbId == null) return;                        // empty space -> let the camera orbit
+      var key = G.dbToKey[dbId] || ("db_" + dbId);
+      ctl.setSelected(key);
+      try { viewer.select(G.groups[key] || [dbId]); } catch (e) {}   // highlight the whole charger
+      var c = groupCenter(key), p = hit.point;
+      grab.x = c.x - p.x; grab.y = c.y - p.y;          // keep the grabbed point under the cursor
       dragging = true;
       ctl.setDragMode(true);
-      if (viewer.setNavigationLock) viewer.setNavigationLock(true);   // freeze orbit while dragging
-      setState(dbId);
+      if (viewer.setNavigationLock) viewer.setNavigationLock(true);
+      setState(key);
       ev.preventDefault();
     });
 
     canvas.addEventListener("pointermove", function (ev) {
       if (!dragging) return;
-      var p = worldUnderCursor(ev);
-      if (!p) return;
-      ctl.dragTo({ x: p.x + grab.x, y: p.y + grab.y });
+      var hit = viewer.clientToWorld(ev.offsetX, ev.offsetY);
+      if (hit && hit.point) ctl.dragTo({ x: hit.point.x + grab.x, y: hit.point.y + grab.y });
     });
 
     function endDrag() {
@@ -187,9 +210,9 @@
       setState(ctl.getSelected());
     }
     canvas.addEventListener("pointerup", endDrag);
-    window.addEventListener("pointerup", endDrag);   // catch releases off-canvas
+    window.addEventListener("pointerup", endDrag);
 
-    console.log("Sonder drag ready");
+    console.log("Sonder drag ready (groups:", Object.keys(G.groups).length + ")");
   }
 
   var t = setInterval(function () {

@@ -148,17 +148,43 @@ for o in bld_objs:
 ground_objs = ground_grid_mesh(ground_shift, labels, (0, 0, ROI_M, ROI_M), cell=0.5)
 
 # Sonder: place the EV charger at the validated curb (set SONDER_SITE to the handoff json path).
-# The site's ground elevation comes from the classified ground so the charger sits on the road.
+# The site's ground elevation comes from the classified ground so the charger sits on the road,
+# and we nudge it to a CLEAR spot so it is never inside a tree/pole/hydrant/car.
 stations = []
 _site_path = os.environ.get("SONDER_SITE")
 if _site_path:
     from pyproj import Transformer
     loc = json.load(open(_site_path))
     wx, wy = Transformer.from_crs(4326, crs, always_xy=True).transform(loc["lon"], loc["lat"])
-    gz = float(ground_ds[cKDTree(ground_ds[:, :2]).query([wx, wy])[1], 2])
-    stations = [{"x": wx - ox, "y": wy - oy, "ground_z": gz,
-                 "yaw": np.radians(loc.get("bearing", 0.0))}]
-    print(f"EV station placed for {loc.get('cand_id','?')} at ({loc['lon']:.5f},{loc['lat']:.5f})")
+    tx, ty = wx - ox, wy - oy                         # target in local-shifted coords
+
+    # obstacles to avoid (lifted assets + detected cars), already in local-shifted coords here
+    obstacles = [(a["x"], a["y"]) for a in assets] + [(b["center"][0], b["center"][1]) for b in cars]
+    obst = np.array(obstacles) if obstacles else np.empty((0, 2))
+    CLEAR = float(os.environ.get("SONDER_CLEAR_M", 1.3))   # min distance to any obstacle
+
+    def clearance(px, py):
+        if len(obst) == 0:
+            return 1e9
+        return float(np.min(np.hypot(obst[:, 0] - px, obst[:, 1] - py)))
+
+    bx, by, best = tx, ty, clearance(tx, ty)
+    if best < CLEAR:                                  # search rings around the target for a clear spot
+        for r in (1.0, 1.5, 2.0, 2.5, 3.0, 4.0):
+            for a_deg in range(0, 360, 30):
+                a = np.radians(a_deg)
+                cx, cy = tx + r * np.cos(a), ty + r * np.sin(a)
+                if 0 <= cx <= ROI_M and 0 <= cy <= ROI_M:
+                    cl = clearance(cx, cy)
+                    if cl > best:
+                        bx, by, best = cx, cy, cl
+            if best >= CLEAR:
+                break
+    gz = float(ground_ds[cKDTree(ground_ds[:, :2]).query([bx + ox, by + oy])[1], 2])
+    stations = [{"x": bx, "y": by, "ground_z": gz, "yaw": np.radians(loc.get("bearing", 0.0))}]
+    moved = np.hypot(bx - tx, by - ty)
+    print(f"EV charger placed for {loc.get('cand_id','?')} at ({loc['lon']:.5f},{loc['lat']:.5f}); "
+          f"clearance {best:.1f} m, nudged {moved:.1f} m to avoid obstacles")
 
 objs = ground_objs + bld_objs + car_objects(cars) + asset_objects(assets) + ev_station_objects(stations)
 write_mtl("out/scene.mtl")

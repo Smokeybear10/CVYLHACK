@@ -21,7 +21,11 @@ MATERIALS = {
     "misc":     (0.62, 0.58, 0.30),
     "wall":     (0.72, 0.66, 0.58),
     "roof":     (0.45, 0.40, 0.38),
-    "ev_green": (0.10, 0.55, 0.30),   # Sonder: EV charging station body
+    # Sonder EV charger (ChargePoint CT4000-class curbside pedestal)
+    "ev_body":   (0.16, 0.18, 0.21),  # dark charcoal housing
+    "ev_accent": (0.05, 0.62, 0.55),  # teal status light bar
+    "ev_base":   (0.27, 0.27, 0.30),  # mounting plinth
+    "ev_screen": (0.08, 0.10, 0.13),  # display
 }
 
 
@@ -131,24 +135,52 @@ def asset_objects(assets):
 
 # ---------- Sonder: EV charging station ----------
 
-def ev_station_objects(stations):
-    """Sonder addition. stations: list of {x, y, ground_z, yaw} in the same local-shifted UTM
-    frame as the rest of the scene. Each station is pedestal + screen head + connector stub, all
-    named so the APS Viewer makes them individually selectable and movable (no spaces in names).
+def ev_charger_objects(chargers):
+    """Sonder: a realistic-but-simple curbside Level 2 EV charger (ChargePoint CT4000-class).
+
+    chargers: list of {x, y, ground_z, yaw} in the scene's local-shifted UTM frame.
+    Real reference: ~1.5 m tall, slim pole on a base plinth, a wider head with a dark screen and a
+    teal status light bar, a side cable holster with a J1772 connector.
+
+    Each part is its own named OBJ group sharing the prefix `ev_charger_NN`, so it renders in color
+    AND the viewer drags the whole charger as one unit (move every node with that prefix). No spaces
+    in names (a space would break the selectable node).
     """
+    def world(x, y, yaw, lx, ly):
+        c, s = math.cos(yaw), math.sin(yaw)
+        return (x + lx * c - ly * s, y + lx * s + ly * c)
+
     objs = []
-    for i, s in enumerate(stations, 1):
-        x, y, z0 = s["x"], s["y"], s["ground_z"]
-        yaw = s.get("yaw", 0.0)
-        nm = f"ev_station_{i:02d}"
-        bv, bf = mesh_box((x, y, z0 + 0.60), (0.45, 0.30, 1.20), yaw)        # pedestal
-        objs.append({"name": nm, "material": "ev_green", "verts": bv, "faces": bf})
-        sv, sf = mesh_box((x, y, z0 + 1.28), (0.42, 0.10, 0.34), yaw)        # screen head
-        objs.append({"name": nm + "_screen", "material": "signal", "verts": sv, "faces": sf})
-        ox2, oy2 = 0.20 * math.cos(yaw), 0.20 * math.sin(yaw)               # connector, offset along yaw
-        cv, cf = mesh_cylinder(x + ox2, y + oy2, z0 + 0.95, 0.04, 0.30)
-        objs.append({"name": nm + "_plug", "material": "metal", "verts": cv, "faces": cf})
+    for i, ch in enumerate(chargers, 1):
+        x, y, z0 = ch["x"], ch["y"], ch["ground_z"]
+        yaw = ch.get("yaw", 0.0)
+        nm = f"ev_charger_{i:02d}"
+
+        def part(suffix, material, center, size):
+            v, f = mesh_box(center, size, yaw)
+            objs.append({"name": nm + suffix, "material": material, "verts": v, "faces": f})
+
+        part("_base", "ev_base", (x, y, z0 + 0.06), (0.38, 0.34, 0.12))          # plinth on the curb
+        part("_pole", "ev_body", (x, y, z0 + 0.60), (0.17, 0.17, 1.00))          # slim pole
+        part("_head", "ev_body", (x, y, z0 + 1.32), (0.38, 0.27, 0.46))          # head
+        # screen + teal light bar + holster + connector, offset off the front/side faces
+        sx, sy = world(x, y, yaw, 0.15, 0.0)                                      # screen on front
+        sv, sf = mesh_box((sx, sy, z0 + 1.34), (0.04, 0.24, 0.20), yaw)
+        objs.append({"name": nm + "_screen", "material": "ev_screen", "verts": sv, "faces": sf})
+        lx, ly = world(x, y, yaw, 0.16, 0.0)
+        lv, lf = mesh_box((lx, ly, z0 + 1.51), (0.05, 0.30, 0.05), yaw)           # teal status bar
+        objs.append({"name": nm + "_light", "material": "ev_accent", "verts": lv, "faces": lf})
+        hx, hy = world(x, y, yaw, 0.0, 0.17)
+        hv, hf = mesh_box((hx, hy, z0 + 1.05), (0.10, 0.07, 0.16), yaw)           # cable holster
+        objs.append({"name": nm + "_holster", "material": "ev_body", "verts": hv, "faces": hf})
+        gx, gy = world(x, y, yaw, 0.02, 0.23)
+        gv, gf = mesh_cylinder(gx, gy, z0 + 0.92, 0.04, 0.16)                     # J1772 connector
+        objs.append({"name": nm + "_plug", "material": "metal", "verts": gv, "faces": gf})
     return objs
+
+
+# back-compat alias (run.py / older callers used ev_station_objects)
+ev_station_objects = ev_charger_objects
 
 
 # ---------- writer ----------

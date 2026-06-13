@@ -28,3 +28,8 @@ out/
 *.svf
 *.glb
 *.gltf
+
+# Generated artifacts (regenerable)
+*.png
+spots_by_street.json
+site.json
