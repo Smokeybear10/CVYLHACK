@@ -113,17 +113,40 @@ His viewer already moves a selected node via fragment proxies. To let the user d
 node there. Viewer-side addition next to the existing move/delete handlers. Nice-to-have; 3a alone
 carries the demo.
 
-## The Sonder → CAD handoff (the only new contract)
+## What CAD operates on: the specific validated locations
 
-The swarm already produces the winner. CAD needs a tiny json:
+CAD is not one generic scene. It runs **per location** — the specific curb segments the report is
+about: the places Stage 1 narrowed to, Stage 2 (the swarm) visited and validated, and that land in
+the report as Go / Conditional. For each of those locations CAD reconstructs the **physical building
+blocks** of that exact curb (ground, curb, poles, hydrants, trees, buildings) and places the EV
+charger in it, so the report's 3D view is that real spot. Typically we bake the winner plus the top
+1-2 finalists; the same call runs for any location in the report.
+
+## The Sonder → CAD handoff (per location)
+
+The chain is: Stage 1 `top`/`candidates` (Saim) → swarm validates → a validated location → CAD. The
+handoff for one location pulls from both Stage 1 (the screen's measured features) and Stage 2 (the
+swarm's validated verdict + true measurement):
 
 ```json
-{ "site_id": "seg_001", "lon": -71.1221, "lat": 42.3966, "bearing": 41.0,
-  "usable_frontage_ft": 22.5, "verdict": "go" }
+{
+  "cand_id": "seg_001",                 // Saim's candidate id (= swarm site_id)
+  "address_st": "Elm St near Davis Sq",
+  "lon": -71.1221, "lat": 42.3966,      // Stage 1 'top' centroid -> aim the crop + place the charger
+  "bearing": 41.0,                       // street heading, to orient the charger
+  "verdict": "go",                       // the swarm's validated verdict
+  "usable_frontage_ft": 22.5,            // Stage 2 measured (true frontage), beats Stage 1's proxy
+  "dist_to_power_m": 12.0,               // from Stage 1 'candidates'
+  "est_make_ready_usd": 9000,            // from Stage 1 'candidates' (informs the layout/label)
+  "station_size": "small"                // how many stalls/ports the charger model shows
+}
 ```
 
-That is a subset of our `Verdict` (which now carries `lon`/`lat`) plus the street bearing. The swarm
-writes it; the CAD pipeline reads it to aim the crop and place the station.
+`cand_id`/`lon`/`lat` come straight from Saim's Stage 1 `top`; `verdict` and `usable_frontage_ft`
+are the swarm's validated outputs (our `Verdict` now carries `lon`/`lat`); `dist_to_power_m` and
+`est_make_ready_usd` come from Stage 1 `candidates`. The CAD pipeline reads this to (a) select the
+LiDAR tile + aim the ROI at that location and (b) place the charger at that curb. One json per
+location in the report.
 
 ## How it fits the whole product (PLAN.md §4 architecture)
 
