@@ -200,6 +200,10 @@ html,body{height:100%;overflow:hidden;background:#0A0D10;color:var(--text);font-
 #tally .tc.go i{background:var(--green);color:var(--green)}#tally .tc.co i{background:var(--amber);color:var(--amber)}#tally .tc.ng i{background:var(--red);color:var(--red)}
 #tally .tc b{font-variant-numeric:tabular-nums;min-width:13px;text-align:right;transition:transform .16s cubic-bezier(.2,1.5,.4,1)}
 #tally .tc span{color:var(--dim);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+/* Show in Autodesk */
+.adskbtn{width:100%;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;font-weight:500;color:#06231d;background:var(--accent);border:1px solid var(--accent);border-radius:11px;padding:11px;cursor:pointer;transition:.14s;text-decoration:none;box-shadow:0 6px 18px -8px rgba(57,214,255,.6)}
+.adskbtn:hover{filter:brightness(1.07)}
+.adskbtn .ar{font-weight:700}
 </style></head><body>
 <div id="map"></div>
 <div class="loader" id="loader"><div class="l">Loading Somerville…</div></div>
@@ -303,6 +307,18 @@ function surveyHtml(s){const lv=LIVE[s.id];if(lv)return liveSurveyHtml(s,lv);
    <div class="sby">generated offline by the team's survey stub · with the API key the Claude agent writes this live from the photo + measurements</div>
    </div>
  </div>`}
+// Autodesk: one site is actually rendered (School St, IA17248) and links to the local APS viewer
+// served by cad/viewer/token_server.py on :8080. Every other site shows the button but only ever
+// spins (we have not baked a scene for those).
+const AUTODESK_SITE='IA17248';
+const AUTODESK_URL='http://localhost:8080/index.html';
+function autodeskBtn(s){
+ if(s.id===AUTODESK_SITE)
+  return `<a class="adskbtn" href="${AUTODESK_URL}" target="_blank" rel="noopener">Show in Autodesk <span class="ar">↗</span></a>`;
+ // every other site opens a new tab that sits forever on "generating pre-render" (no scene baked)
+ const q=`site=${encodeURIComponent(s.id)}&addr=${encodeURIComponent(s.addr||'')}`;
+ return `<a class="adskbtn" href="autodesk-prerender.html?${q}" target="_blank" rel="noopener">Show in Autodesk <span class="ar">↗</span></a>`;
+}
 function reportSkeleton(s){const m=s.m;const adaTxt=m.ada_mapped?(m.ada_pass?`Pass · ramp ${m.dist_ada} m`:`Ramp ${m.dist_ada} m`):'Not mapped · verify';
  const adaCls=m.ada_mapped?(m.ada_pass?'pass':'cond'):'cond';
  document.getElementById('rbody').innerHTML=`
@@ -326,7 +342,7 @@ function reportSkeleton(s){const m=s.m;const adaTxt=m.ada_mapped?(m.ada_pass?`Pa
    <div class="kv"><span class="k">Street activity</span><span class="v">${m.activity} markings ≤45 m</span></div>
    <div class="kv"><span class="k">Traffic / AADT</span><span class="v" style="color:var(--dim)">not loaded</span></div></div>
   <div class="blk"><div class="bh"><span>Verify on site</span><span class="src">flag</span></div>
-   <div class="flagbox">Zoning · grid capacity · host · permit${m.ada_mapped?'':' · ADA ramp'} — not in this export, flagged.</div></div><button class="pdfbtn" id="pdfBtn" onclick="openReport()">Open full report ↗</button>`}
+   <div class="flagbox">Zoning · grid capacity · host · permit${m.ada_mapped?'':' · ADA ramp'} — not in this export, flagged.</div></div>${autodeskBtn(s)}<button class="pdfbtn" id="pdfBtn" onclick="openReport()">Open full report ↗</button>`}
 function resolveVerdict(s){const lv=LIVE[s.id];const el=document.getElementById('rVerd');if(lv){const mp={go:['GO','var(--green)'],conditional:['CONDITIONAL','var(--amber)'],no_go:['NO-GO','var(--red)']},mx=mp[lv.verdict]||['—','var(--accent)'];el.textContent=mx[0];el.style.color=mx[1];document.getElementById('rReason').textContent=lv.one_line_reason||'';return}const a=verdictOf(s);el.textContent=a[0];el.style.color=a[1];document.getElementById('rReason').textContent=reason(s)}
 function animateSurvey(){const sb=document.querySelector('.surveyblk.surveying');if(sb)setTimeout(()=>sb.classList.remove('surveying'),820)}
 function select(id){sel=id;const s=S.find(x=>x.id===id);if(!s)return;
