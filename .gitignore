@@ -12,3 +12,4 @@ venv/
 *.copc
 *.ply
 data/
+data_cache/

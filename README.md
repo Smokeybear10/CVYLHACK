@@ -8,6 +8,7 @@ Build a startup, not a demo, on top of Cyvl infrastructure data (LiDAR, digital 
 
 - [docs/HACKATHON.md](docs/HACKATHON.md) — full brief, schedule, prizes, official prompts, pitch format.
 - [docs/JUDGING.md](docs/JUDGING.md) — the scoring rubric (4 criteria, /16) and how to win it.
+- [docs/DATA.md](docs/DATA.md) — what data actually exists (MCP vs the public S3 bucket), label counts, the CV training paths.
 - [docs/CYVL_API.md](docs/CYVL_API.md) — REST API reference, pulled from the live OpenAPI spec.
 - [docs/SPATIAL_SDK.md](docs/SPATIAL_SDK.md) — the Python `cyvl` SDK (3D<->2D projection, LiDAR, viewer).
 - [docs/IDEAS.md](docs/IDEAS.md) — team idea shortlist plus the official prompts.
