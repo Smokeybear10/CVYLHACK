@@ -11,16 +11,25 @@ scoring criteria see docs/JUDGING.md.
 
 ## 1. Product
 
-To build one EV charger an operator screens roughly 50 candidate locations, and almost every
-one historically needs a physical site visit to measure fit, ADA, distance to power, and what
-you would trench through. That is about $5k and weeks per site, mostly spent on sites that get
-rejected. Sonder moves that physical screen to a 60 second desktop query. You circle a region
-of Somerville, set what matters (station size, traffic, power), and Sonder ranks every curb
-segment, then sends a swarm of AI surveyor agents to the finalists. Each agent measures the
-site from Cyvl's 3D scan, looks at the real street photo, and returns a Go, Conditional, or
-No-go verdict with reasons. We do not replace the final survey. We kill the screening truck roll.
+To build one EV charger an operator evaluates on the order of 20 to 25 candidate locations
+(a working estimate, not a published figure, validate in discovery). The serious ones each need
+a physical site visit to measure fit, ADA, distance to power, and what you would trench through.
+A site visit (truck roll) runs about $1,000; a full feasibility study on a finalist runs about
+$5,000 and 2 to 6 weeks. Most of that early screening is spent on sites that get rejected. The
+whole pipeline from site interest to an operational charger averages about 18 months, and the
+real bottleneck is permitting and grid interconnection, not construction (4 to 8 weeks).
 
-Pitch arc: hook (50 to 1), insight (the measurements already exist in the scan), product
+Sonder moves the front of that funnel, the find and the physical screen, to a 60 second desktop
+query. You circle a region of Somerville, set what matters (station size, traffic, power), and
+Sonder ranks every curb segment, then sends a swarm of AI surveyor agents to the finalists. Each
+agent measures the site from Cyvl's 3D scan, looks at the real street photo, and returns a Go,
+Conditional, or No-go verdict with reasons. The result: instead of visiting 20 to 25 candidates,
+a team visits about 5 pre-qualified finalists, cutting roughly 15 to 20 truck rolls (about $15k
+to $20k at ~$1k each) plus weeks of manual scouting per rollout. We do not replace the final
+survey, and we do not fix the grid and permitting bottleneck, we flag it. We kill the screening
+truck roll.
+
+Pitch arc: hook (20-25 candidate visits down to 5), insight (the measurements already exist in the scan), product
 (circle a region, get ranked measured verdicts), close (same engine, any scanned street).
 
 ---
@@ -56,8 +65,9 @@ Pitch arc: hook (50 to 1), insight (the measurements already exist in the scan),
 Four criteria, 25 percent each, out of 16 (docs/JUDGING.md). Build decisions map to them:
 
 - Business Strength. Buyers are charging networks (ChargePoint, EVgo, Electrify America),
-  site-acquisition and EPC firms, property hosts, utilities, and cities. The screen they pay
-  ~$5k for becomes a query. Pricing: per-report, monthly SaaS, or API. It is a startup you
+  site-acquisition and EPC firms, property hosts, utilities, and cities. The early screen they
+  pay for, ~$1k per truck roll across many candidates plus a ~$5k feasibility study on finalists,
+  becomes a query. Pricing: per-report, monthly SaaS, or API. It is a startup you
   could start now. Same engine retargets to small-cell siting and outdoor ad placement later.
 - Technical. Not a "Google Maps clone" (named as a 0). The defense is measurement: we produce
   real dimensions from the scan that no map can. It runs live, end to end, nothing hidden.
@@ -310,7 +320,7 @@ Two is the cap. Ask Boston is not needed for Somerville and we skip it.
 
 Booth round at 5:30, finals on the big screen at 6:30, same 5 plus 2 format.
 
-- Open with the 50-to-1 problem and the truck roll.
+- Open with the funnel problem (about 20-25 candidate visits to build one) and the truck roll.
 - Circle a region in Somerville and set filters.
 - The heatmap washes over the region. "Screened the segments in seconds, from the scan."
 - The swarm dispatches to the finalists; pins light up with verdicts live.
@@ -384,6 +394,10 @@ Demo and narrative:
 - The scan is street level, so we screen street-visible curbside sites today; lot interiors are
   flagged, and they come into scope the moment Cyvl scans the lot, same engine.
 - It is a snapshot, not a live feed.
+- The 20-25 candidates-per-build funnel is our working estimate, to be validated in discovery,
+  not a published figure. Real-estate site selection runs under 10 per build; EV likely higher.
+- We compress the find and physical screen. We do not remove the 18-month grid and permitting
+  bottleneck, we flag it for the finalists.
 
 ---
 
