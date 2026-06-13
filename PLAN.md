@@ -11,16 +11,25 @@ scoring criteria see docs/JUDGING.md.
 
 ## 1. Product
 
-To build one EV charger an operator screens roughly 50 candidate locations, and almost every
-one historically needs a physical site visit to measure fit, ADA, distance to power, and what
-you would trench through. That is about $5k and weeks per site, mostly spent on sites that get
-rejected. Sonder moves that physical screen to a 60 second desktop query. You circle a region
-of Somerville, set what matters (station size, traffic, power), and Sonder ranks every curb
-segment, then sends a swarm of AI surveyor agents to the finalists. Each agent measures the
-site from Cyvl's 3D scan, looks at the real street photo, and returns a Go, Conditional, or
-No-go verdict with reasons. We do not replace the final survey. We kill the screening truck roll.
+To build one EV charger an operator evaluates on the order of 20 to 25 candidate locations
+(a working estimate, not a published figure, validate in discovery). The serious ones each need
+a physical site visit to measure fit, ADA, distance to power, and what you would trench through.
+A site visit (truck roll) runs about $1,000; a full feasibility study on a finalist runs about
+$5,000 and 2 to 6 weeks. Most of that early screening is spent on sites that get rejected. The
+whole pipeline from site interest to an operational charger averages about 18 months, and the
+real bottleneck is permitting and grid interconnection, not construction (4 to 8 weeks).
 
-Pitch arc: hook (50 to 1), insight (the measurements already exist in the scan), product
+Sonder moves the front of that funnel, the find and the physical screen, to a 60 second desktop
+query. You circle a region of Somerville, set what matters (station size, traffic, power), and
+Sonder ranks every curb segment, then sends a swarm of AI surveyor agents to the finalists. Each
+agent measures the site from Cyvl's 3D scan, looks at the real street photo, and returns a Go,
+Conditional, or No-go verdict with reasons. The result: instead of visiting 20 to 25 candidates,
+a team visits about 5 pre-qualified finalists, cutting roughly 15 to 20 truck rolls (about $15k
+to $20k at ~$1k each) plus weeks of manual scouting per rollout. We do not replace the final
+survey, and we do not fix the grid and permitting bottleneck, we flag it. We kill the screening
+truck roll.
+
+Pitch arc: hook (20-25 candidate visits down to 5), insight (the measurements already exist in the scan), product
 (circle a region, get ranked measured verdicts), close (same engine, any scanned street).
 
 ---
@@ -56,8 +65,9 @@ Pitch arc: hook (50 to 1), insight (the measurements already exist in the scan),
 Four criteria, 25 percent each, out of 16 (docs/JUDGING.md). Build decisions map to them:
 
 - Business Strength. Buyers are charging networks (ChargePoint, EVgo, Electrify America),
-  site-acquisition and EPC firms, property hosts, utilities, and cities. The screen they pay
-  ~$5k for becomes a query. Pricing: per-report, monthly SaaS, or API. It is a startup you
+  site-acquisition and EPC firms, property hosts, utilities, and cities. The early screen they
+  pay for, ~$1k per truck roll across many candidates plus a ~$5k feasibility study on finalists,
+  becomes a query. Pricing: per-report, monthly SaaS, or API. It is a startup you
   could start now. Same engine retargets to small-cell siting and outdoor ad placement later.
 - Technical. Not a "Google Maps clone" (named as a 0). The defense is measurement: we produce
   real dimensions from the scan that no map can. It runs live, end to end, nothing hidden.
@@ -98,19 +108,27 @@ charger fits, because they never see the site. We measure the site from Cyvl's s
 ## 4. Architecture
 
 ```
-USER: circle a region on the Somerville map, set filters (size, traffic, power)
+USER: circle a region on the Somerville map, set filters (size, demand, power)
    |
-STAGE 1  SCREEN  (deterministic, fast, no LLM cost)
+STAGE 1  SCREEN  (deterministic, fast, no LLM cost)  [BUILT]
    - candidates = pavement segments inside the region
-   - enrich each with power distance, pavement, ADA, obstructions, road class
-   - gated then weighted score -> heatmap + ranked list -> top ~25
+   - enrich each with power distance, pavement, obstructions, road class
+   - gated then weighted score -> heatmap + ranked list -> top ~25 to 50
+   |
+STAGE 1.5  OBSTRUCTION FILTER  (CV / SAM3)
+   - Cyvl point assets (hydrants, trees) are not a complete obstruction picture
+   - segment each finalist's curb photo for blockers the data misses
+   - drop curbs that physically cannot host a charger -> clean shortlist of ~20 to 50
    |
 STAGE 2  SURVEY  (AI swarm, the truck-roll replacement)
-   - per finalist: SAM3 segments the photo, lifted to 3D for real measurements
-   - an agent reads measurements + public data + the photo + zoning -> verdict + why
-   - verdicts fill the map live, finalists rank, top 1-3 are "build here"
+   - lift the CV masks to 3D for real measurements (frontage, clearance, distance to power)
+   - an agent validates and rates each spot against the criteria, with the photo and zoning
+   - produces a professional, verdict-first report; finalists rank, top 1-3 are "build here"
    |
-OUTPUT: verdict-first report, evidence photo with measured line, 3D viewer, CAD export
+STAGE 3  INTERACTIVE  (the user-facing payoff)
+   - open the chosen curb segment in 3D / CAD: the SDK browser viewer live in-app, and the
+     Autodesk Civil 3D export for build-ready CAD
+   - the EV charger placed in the real curb segment, so the user sees the fit in 3D space
 ```
 
 Component roles:
@@ -170,7 +188,7 @@ Public sources we layer on:
 ### 5.2 Stage 1, the screening layer
 
 What it does: turn a circled region into a ranked, color-coded set of candidate curb segments
-in a couple of seconds, with no LLM cost.
+in a couple of seconds, with no LLM cost. Status: built and tested (see screening/).
 
 How:
 
@@ -178,15 +196,16 @@ How:
   aligned, already carries geometry, PCI, area, and street name, so we get real candidates
   without arbitrary grid sampling. Caveat we state openly: their geometry follows the cartway
   centerline, so Stage 1 width is a coarse proxy; Stage 2 gets the true usable frontage.
-- Enrichment per candidate, all deterministic from the REST API and public data: distance to
-  the nearest power asset, pavement condition and derived road width, nearest ADA ramp and
-  sidewalk condition, count of obstructions in the frontage, parking and fire-lane flags from
-  markings, and road class plus AADT from MassDOT.
-- Scoring is two steps. First, hard gates remove obvious No-gos: no power within range, frontage
-  too small for the chosen station size, pavement failed. Then a weighted score over the
-  survivors, where the filter sliders are the weights, and every score decomposes into its
-  parts so the heatmap and report can explain it.
-- Output: the region colored by score, a ranked list, and the top ~25 handed to Stage 2.
+- Enrichment per candidate, all deterministic: distance to the nearest power asset (turned into
+  a make-ready cost estimate), derived road width, pavement condition, obstruction count in the
+  frontage, fire-lane / no-parking marking flags, and FHWA functional class. Functional class
+  feeds two demand signals, residential and traveler, blended by a demand_mix knob (see filters).
+- Scoring is two steps. Hard gates remove obvious No-gos: no power within a cost-justified
+  distance (about 330 ft), frontage too small for the chosen station size, failed pavement,
+  fire-lane or no-parking marking. Then a weighted score over the survivors, where the filter
+  sliders are the weights, and every score decomposes into its parts so the report can explain it.
+- Output: the region colored by score, a ranked list with each candidate's component breakdown
+  and cost band, and the top ~25 to 50 handed to the obstruction filter and the swarm.
 
 ### 5.3 Stage 2, the survey swarm
 
@@ -196,10 +215,13 @@ truck-roll replacement, and it is why we use agents at all.
 
 How:
 
-- Perception first (real CV). For each finalist we take the nearest posed photo, run SAM3 to
-  segment the usable curb, obstructions, and the power asset, and lift those masks to 3D through
-  the LiDAR to get real measurements: usable frontage in feet, obstruction positions, and
-  distance to power. The masks drawn on the photo become the report's evidence image.
+- Perception and obstruction filter first (real CV, the Stage 1.5 step). Cyvl's point assets
+  are not a complete obstruction picture, so for each finalist we take the nearest posed photo
+  and run SAM3 to segment the usable curb, the blockers (hydrant, tree, driveway, pole), and the
+  power asset. Curbs that physically cannot host a charger are dropped here, before we spend any
+  agent tokens. For the survivors we lift those masks to 3D through the LiDAR to get real
+  measurements: usable frontage in feet, obstruction positions, and distance to power. The masks
+  drawn on the photo become the report's evidence image.
 - Judgment second. The agent is given the measured numbers, the deterministic facts, the public
   data, the zoning status, the user's priorities, and the street photo itself. Its job is to
   judge, not to invent numbers: confirm or contextualize the measurements, use vision on the
@@ -264,10 +286,14 @@ view. The starred items (fit, connection, evidence, 3D) are what no map tool can
 
 ### 5.6 3D / measurement layer
 
-We use the SDK's built-in browser viewer, which renders the point cloud through the photo's
-exact calibrated camera. We do not build a Potree pipeline; the viewer ships. We pre-cache the
-LiDAR and frames for the demo region so it loads instantly, and we export a colored point cloud
-of the winning block for the Autodesk path.
+This is Stage 3, the interactive payoff. The user opens the chosen curb segment in 3D and sees
+the EV charger placed in the real curb. Two paths, used together: the SDK's built-in browser
+viewer renders the point cloud through the photo's exact calibrated camera for the live in-app
+view (no Potree pipeline to build, it ships), and a colored point cloud of the segment exports
+to Autodesk Civil 3D for build-ready CAD. Honest scoping: the live, click-it-now view is the SDK
+viewer; the Civil 3D round-trip is heavier, so treat the CAD as an export and handoff artifact,
+not a live in-browser round-trip. We pre-cache the LiDAR and frames for the demo region so the
+viewer loads instantly.
 
 ### 5.7 Backend layer
 
@@ -283,8 +309,12 @@ key and runs the SDK measurement step; the API key lives in a gitignored .env, n
 
 - Station size: strongest, because it is measured. Size maps to a required frontage length, used
   as a gate and a weight, and Stage 2 measures the real frontage. This is our wedge, lead with it.
-- Traffic: feasible. Real volume from MassDOT AADT where it exists, road hierarchy from Cyvl
-  functional_class and MassDOT class everywhere, OSM as fallback. We say "proxy" where it is one.
+- Demand (the "traffic" filter): we score both residential demand (residents who park on-street
+  overnight, favoring local and collector streets) and traveler demand (through-traffic with curb
+  access, favoring arterials and collectors), blended by a demand_mix knob, balanced by default,
+  because curbside serves both families and travelers. Built from Cyvl's functional_class today;
+  MassDOT AADT volume and residential density are the upgrades to pair in. We say "proxy" where
+  it is one.
 - Power: feasible as proximity to scanned poles and luminaires, which for curbside is the real
   interconnection point. True grid capacity is utility-private and gets flagged, not faked.
 
@@ -310,7 +340,7 @@ Two is the cap. Ask Boston is not needed for Somerville and we skip it.
 
 Booth round at 5:30, finals on the big screen at 6:30, same 5 plus 2 format.
 
-- Open with the 50-to-1 problem and the truck roll.
+- Open with the funnel problem (about 20-25 candidate visits to build one) and the truck roll.
 - Circle a region in Somerville and set filters.
 - The heatmap washes over the region. "Screened the segments in seconds, from the scan."
 - The swarm dispatches to the finalists; pins light up with verdicts live.
@@ -384,6 +414,10 @@ Demo and narrative:
 - The scan is street level, so we screen street-visible curbside sites today; lot interiors are
   flagged, and they come into scope the moment Cyvl scans the lot, same engine.
 - It is a snapshot, not a live feed.
+- The 20-25 candidates-per-build funnel is our working estimate, to be validated in discovery,
+  not a published figure. Real-estate site selection runs under 10 per build; EV likely higher.
+- We compress the find and physical screen. We do not remove the 18-month grid and permitting
+  bottleneck, we flag it for the finalists.
 
 ---
 
