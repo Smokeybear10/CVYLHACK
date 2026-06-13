@@ -1,15 +1,16 @@
 # CVYLHACK
 
-Cyvl hackathon project. Somerville, MA. June 13, 2026.
+Cyvl Physical AI Hackathon. "Build the Physical Future." Cyvl HQ, Somerville, MA. June 13, 2026. $12k in prizes ($8k / $3k / $1k).
 
-Build something real on top of Cyvl infrastructure data (LiDAR, digital twin, CV-detected assets), optionally paired with public Somerville/Boston data. Use at least one sponsor tool (NVIDIA, Autodesk, Ask Boston) in a way that genuinely fits the idea.
+Build a startup, not a demo, on top of Cyvl infrastructure data (LiDAR, digital twin, CV-detected assets), optionally paired with public Somerville/Boston data. Use one or two sponsor tools (NVIDIA, Autodesk, Ask Boston) in a way that genuinely fits the idea. Judges score the startup, not just the code.
 
 ## Docs in this repo
 
-- [docs/HACKATHON.md](docs/HACKATHON.md) — full brief, rules, what you get, where to start.
+- [docs/HACKATHON.md](docs/HACKATHON.md) — full brief, schedule, prizes, official prompts, pitch format.
+- [docs/JUDGING.md](docs/JUDGING.md) — the scoring rubric (4 criteria, /16) and how to win it.
 - [docs/CYVL_API.md](docs/CYVL_API.md) — REST API reference, pulled from the live OpenAPI spec.
 - [docs/SPATIAL_SDK.md](docs/SPATIAL_SDK.md) — the Python `cyvl` SDK (3D<->2D projection, LiDAR, viewer).
-- [docs/IDEAS.md](docs/IDEAS.md) — team idea shortlist and notes.
+- [docs/IDEAS.md](docs/IDEAS.md) — team idea shortlist plus the official prompts.
 - [CLAUDE.md](CLAUDE.md) — instructions for Claude Code in this repo.
 
 ## Key links
@@ -23,7 +24,9 @@ Build something real on top of Cyvl infrastructure data (LiDAR, digital twin, CV
 
 ## Rules that matter
 
-- Real Cyvl data only. Mock data scores lower, judges mark it down.
-- Use one or two sponsor tools, woven in, not bolted on.
+- Real Cyvl data only. Fake data scores a 0 on the data criterion (25% of the total).
+- Not a "Google Maps clone" — that is named as a 0 on technical.
+- Use one or two sponsor tools, woven in, not bolted on. More is not better.
+- Bring a working demo AND a business case. 5 min pitch + 2 min Q&A.
 - Don't reframe an existing solution as novel. Search first.
 - API key is private. Do not commit it.

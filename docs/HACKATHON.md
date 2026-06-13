@@ -1,11 +1,17 @@
-# Cyvl Hackathon - Full Brief
+# Cyvl Physical AI Hackathon - Full Brief
 
-Somerville, MA. June 13, 2026. CYVL, 76 School Street.
+"Build the Physical Future." June 13, 2026. Cyvl HQ, 76 School Street, Somerville, MA. $12k in prizes.
 Brief v2, updated 2026-05-29.
+
+## Who Cyvl is
+
+Vehicle-mounted LiDAR plus 360 imagery turn city streets into digital twins. Their AI detects, scores, and prioritizes infrastructure for 500+ communities nationwide. Mission: accelerate the future of the nation's infrastructure.
 
 ## The one-line version
 
 Cyvl drives cars around cities and builds a "digital twin" of the streets: every sign, road marking, pole, and stretch of pavement, captured as LiDAR point clouds and street-level photos, with computer vision labeling the assets and scoring pavement condition. You get access to all of that for Somerville. Build something useful on top of it.
+
+The framing from kickoff: **build a startup, not a demo.** Judges score the startup, not just the code. See [JUDGING.md](JUDGING.md).
 
 ## What you can do before kickoff
 
@@ -46,6 +52,45 @@ Integration is on you. Knowing what exists is what makes it possible.
 - OpenStreetMap (road network, land use)
 - Boston Open Data via Ask Boston (311, Vision Zero crashes, sidewalks, streetlights)
 
+## Official idea prompts (ideas, not tracks)
+
+From the kickoff deck. You do not have to pick one of these, they are starting points.
+
+1. **Freight that fits** — use LiDAR clearance data to set real truck limits and route freight safely through a city.
+2. **Point cloud to CAD** — pipe Cyvl point clouds into Autodesk and generate real, build-ready CAD.
+3. **Safe to bike?** — score how safe a city actually is for cyclists, and hold it accountable.
+4. **Ask Boston, with eyes** — wire the Ask Boston MCP to Cyvl data so the city can answer with what its streets actually look like.
+5. **Truly accessible?** — audit whether a city that calls itself handicap-friendly actually is, curb by curb.
+6. **Blind spot tracker** — use point clouds to find driver blind spots and the cheapest fix, even if it is trimming a bush.
+
+Our team's EV-charger siting idea is not on this list, which is fine ("ideas, not tracks"). See [IDEAS.md](IDEAS.md).
+
+## What you present
+
+Every team brings both: a working demo and a presentation that makes the business case. Judges score the startup, not just the code.
+
+- **5 min** your pitch: demo what you built and present the business behind it.
+- **+2 min** questions: judges ask, you answer.
+- Same format both rounds: at your booth at 5:30 (round one), and on the big screen in the finals at 6:30.
+
+## Prizes
+
+$12k total pool.
+
+- 1st: $8,000
+- 2nd: $3,000
+- 3rd: $1,000
+
+## Schedule (June 13)
+
+- 9:00 AM — Check-in. Doors open, find your table, runs to 9:20.
+- 9:25 AM — Kickoff.
+- 9:30 AM — Build. Eight hours, head down.
+- 12:00 PM — Lunch (Jersey Mikes).
+- 5:30 PM — Booth judging. Judges come to your table, round one, be ready.
+- 6:30 PM — Finals. Top teams present on the big screen.
+- 7:30 PM — Awards.
+
 ## What you get at Saturday kickoff
 
 - Team confirmation.
@@ -67,14 +112,31 @@ Integration is on you. Knowing what exists is what makes it possible.
 
 You can access: LiDAR point cloud data, digital twin queries (geometry, asset attributes), CV model inference (pavement, signs, markings), and the Cyvl MCP for AI agent integration.
 
+## Where everything lives
+
+Everything is pinned in the Discord: docs, sample data, and access keys. Start there.
+
+- **Data** — Cyvl API: LiDAR point clouds, 360 imagery, and condition data from real cities.
+- **Design** — Autodesk APS: CAD, model, and viewer APIs for turning data into designs.
+- **Docs** — pinned in Discord: guides, sample code, and keys, all in the server.
+
 ## Rules and scoring
 
-- Real Cyvl data is the point. Mock data scores lower.
+- Real Cyvl data is the point. Fake data scores a 0 on the data criterion (a quarter of the total). See [JUDGING.md](JUDGING.md).
 - Build must come from real Somerville Cyvl data, optionally paired with real external sources.
+- "Google Maps clone" is named as a 0 on technical. Do something Maps cannot.
+- Use one or two sponsor tools well. More is not better.
 - Before committing to a direction, search for existing work that already solves it. Reframing a known solution as novel is the most common mistake.
 - Keep the API key private. Do not commit it to a public repo.
 
-## Support
+## Support and contacts
 
-- Discord #questions channel.
+- Discord #questions channel. Post anything, or grab a mentor on the floor all day.
 - Cyvl engineers on-site 9:30 AM to 5:00 PM. If the API goes down, flag staff for the offline dataset.
+
+Cyvl team on the floor:
+- Daniel Pelaez, CEO
+- Noah Parker, CTO
+- Lily Jiang, SWE
+- Brian Wang, SWE Intern
+- Xavier Nishikawa, SWE Intern
