@@ -1,10 +1,9 @@
 {
-  "cand_id": "davis_demo",
-  "lon": -71.11963504038926,
+  "address": "near 387 Highland Avenue, Ball Square, Somerville, MA 02144",
   "lat": 42.39539715803472,
-  "local_xy": [
-    42.40749999997206,
-    17.62650000024587
-  ],
-  "clearance_m": 1.5116322413256247
+  "lon": -71.11963504038926,
+  "google_maps_paste": "42.39539715803472, -71.11963504038926",
+  "google_maps_url": "https://www.google.com/maps?q=42.39539715803472,-71.11963504038926",
+  "clearance_m": 1.51,
+  "note": "Order matters: Google Maps and most tools want lat,lon (latitude first). GeoJSON/Cyvl store lon,lat. Address reverse-geocoded via OSM Nominatim."
 }
