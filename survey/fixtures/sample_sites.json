@@ -1,0 +1,374 @@
+{
+  "region": [
+    -71.1015,
+    42.384,
+    -71.0976,
+    42.396
+  ],
+  "sites": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100244,
+            42.38462
+          ],
+          [
+            -71.100293,
+            42.384546
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA18395",
+        "address_st": "School Street",
+        "score": 91.3,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 1.0,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.953,
+          "obstruction": 1.0
+        },
+        "pci": 95.3072420940342,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 29.966666666666665,
+        "dist_to_power_m": 13.934978794649686,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 5.0,
+        "residential_suit": 0.8,
+        "traffic_suit": 0.6,
+        "est_make_ready_usd": 11500.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100406,
+            42.384376
+          ],
+          [
+            -71.10046,
+            42.384395
+          ],
+          [
+            -71.100506,
+            42.384412
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA02249",
+        "address_st": "Summer Street",
+        "score": 91.2,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 1.0,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.946,
+          "obstruction": 1.0
+        },
+        "pci": 94.5889753788468,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 34.8,
+        "dist_to_power_m": 6.745062533739609,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 4.0,
+        "residential_suit": 0.5,
+        "traffic_suit": 0.9,
+        "est_make_ready_usd": 8700.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100538,
+            42.392571
+          ],
+          [
+            -71.100511,
+            42.392609
+          ],
+          [
+            -71.100486,
+            42.392644
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA01300",
+        "address_st": "Central Street",
+        "score": 91.2,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 1.0,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.946,
+          "obstruction": 1.0
+        },
+        "pci": 94.6363062464133,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 34.0,
+        "dist_to_power_m": 10.245396204381578,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 5.0,
+        "residential_suit": 0.8,
+        "traffic_suit": 0.6,
+        "est_make_ready_usd": 10000.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.098819,
+            42.386693
+          ],
+          [
+            -71.098868,
+            42.386619
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA03654",
+        "address_st": "School Street",
+        "score": 91.2,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 1.0,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.946,
+          "obstruction": 1.0
+        },
+        "pci": 94.5713633940232,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 24.333333333333332,
+        "dist_to_power_m": 14.27141031033489,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 5.0,
+        "residential_suit": 0.8,
+        "traffic_suit": 0.6,
+        "est_make_ready_usd": 11600.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100455,
+            42.384302
+          ],
+          [
+            -71.100505,
+            42.384228
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA15569",
+        "address_st": "School Street",
+        "score": 91.2,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 1.0,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.945,
+          "obstruction": 1.0
+        },
+        "pci": 94.5397823339699,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 20.366666666666667,
+        "dist_to_power_m": 7.590718841566096,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 5.0,
+        "residential_suit": 0.8,
+        "traffic_suit": 0.6,
+        "est_make_ready_usd": 9000.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100506,
+            42.384412
+          ],
+          [
+            -71.100605,
+            42.384447
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA02250",
+        "address_st": "Summer Street",
+        "score": 91.2,
+        "verdict": "Go",
+        "gated": false,
+        "gate_reasons": [],
+        "components": {
+          "power": 0.998,
+          "demand": 0.7,
+          "fit": 1.0,
+          "pavement": 0.95,
+          "obstruction": 1.0
+        },
+        "pci": 95.0490530838823,
+        "label": "Good",
+        "length_ft": 30.0,
+        "road_width_ft": 29.466666666666665,
+        "dist_to_power_m": 15.118313247539177,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 4.0,
+        "residential_suit": 0.5,
+        "traffic_suit": 0.9,
+        "est_make_ready_usd": 12000.0,
+        "connection_cost_band": "low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.101505,
+            42.386971
+          ],
+          [
+            -71.101478,
+            42.387011
+          ],
+          [
+            -71.101461,
+            42.387034
+          ],
+          [
+            -71.101455,
+            42.387044
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA03679",
+        "address_st": "Trull Lane",
+        "score": 0.0,
+        "verdict": "No-go",
+        "gated": true,
+        "gate_reasons": [
+          "no power within range"
+        ],
+        "components": {
+          "power": 0.0,
+          "demand": 0.6,
+          "fit": 1.0,
+          "pavement": 0.794,
+          "obstruction": 1.0
+        },
+        "pci": 79.4,
+        "label": "Satisfactory",
+        "length_ft": 30.0,
+        "road_width_ft": 29.4,
+        "dist_to_power_m": 215.18236554614728,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 7.0,
+        "residential_suit": 1.0,
+        "traffic_suit": 0.2,
+        "est_make_ready_usd": 90700.0,
+        "connection_cost_band": "high"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -71.100251,
+            42.394636
+          ],
+          [
+            -71.1003,
+            42.394563
+          ]
+        ]
+      },
+      "properties": {
+        "cand_id": "IA09161",
+        "address_st": "Adams Street",
+        "score": 0.0,
+        "verdict": "No-go",
+        "gated": true,
+        "gate_reasons": [
+          "no power within range"
+        ],
+        "components": {
+          "power": 0.0,
+          "demand": 0.6,
+          "fit": 1.0,
+          "pavement": 0.364,
+          "obstruction": 1.0
+        },
+        "pci": 36.4,
+        "label": "Very Poor",
+        "length_ft": 30.0,
+        "road_width_ft": 26.366666666666667,
+        "dist_to_power_m": 128.18858610936195,
+        "obstruction_count": 0,
+        "disqualify_marking": false,
+        "functional_class": 7.0,
+        "residential_suit": 1.0,
+        "traffic_suit": 0.2,
+        "est_make_ready_usd": 56500.0,
+        "connection_cost_band": "high"
+      }
+    }
+  ]
+}

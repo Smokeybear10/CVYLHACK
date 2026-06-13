@@ -15,6 +15,9 @@ venv/
 data/
 data_cache/
 .swarm_cache/
+.survey_cache/
+# generated report PDFs
+out/
 # cached layer downloads (re-fetched from the public bucket on demand)
 _cache/
 *.parquet
