@@ -151,9 +151,19 @@ Six Somerville finalists spanning every outcome: a clean go, two conditionals (b
 hydrant), a too-narrow no-go (11 ft < 18 ft), a far-power no-go (41 m), a failed-pavement no-go
 (PCI 18). Photo URLs are real Cyvl CDN frames so the real path has an image to look at.
 
-### `run_demo.py` — entry point
+### `run_demo.py` — CLI entry point
 Loads mocks, runs breadth (clean message on auth failure), picks the winner, runs the crew, prints
 verdicts + crew findings. `--limit N` caps finalists for frugal real-mode testing.
+
+### `service.py` — HTTP surface (what the frontend calls)
+FastAPI app, CORS open for dev. `SurveyRequest` (all fields optional; omit `finalists`/
+`measurements` to use mocks) maps to our dataclasses via `_build()`, ignoring unknown keys so
+field drift in the other lanes does not break us.
+- `GET /health` → mode + model ids.
+- `POST /survey` → full run, `{verdicts[], winners[], crew[]}`.
+- `POST /survey/stream` → `text/event-stream`: a `verdict` event per finalist as agents finish,
+  then a `winner` event per deep-dived winner, then `done`. This is what fills the map live.
+Run: `uvicorn swarm.service:app --port 8000`.
 
 ---
 

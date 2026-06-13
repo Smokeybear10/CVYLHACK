@@ -14,10 +14,46 @@ Prints a breadth verdict per finalist, then a deep-dive on the winner. Works tod
 
 ## Run it for real
 
+Put the team key in `.env` (auto-loaded): `ANTHROPIC_API_KEY=sk-ant-...`. Then:
+
 ```bash
-export ANTHROPIC_API_KEY=...        # team key, kickoff
-export ANTHROPIC_MODEL=claude-sonnet-4-5   # optional
-python -m swarm.run_demo
+python -m swarm.run_demo            # CLI
+python -m swarm.run_demo --limit 2  # frugal: only 2 finalists hit the API
+```
+
+Models: breadth uses `SWARM_BREADTH_MODEL` (default Haiku, cheap, one call per site), the winner
+crew uses `SWARM_CREW_MODEL` (default Sonnet). Override in `.env`.
+
+## The service (what the frontend calls)
+
+```bash
+pip install -r requirements-swarm.txt
+uvicorn swarm.service:app --reload --port 8000
+```
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `GET /health` | — | `{ok, mode, breadth_model, crew_model}` |
+| `POST /survey` | `SurveyRequest` | `{verdicts[], winners[], crew[]}` |
+| `POST /survey/stream` | `SurveyRequest` | SSE: `verdict` per finalist, then `winner`, then `done` |
+
+`SurveyRequest` (every field optional — omit `finalists`/`measurements` to run on mock data):
+```json
+{
+  "priorities": {"station_size": "curbside_l2", "required_frontage_ft": 18, "weights": {"power":1,"traffic":0.8,"fit":1.2}},
+  "finalists": [ { ...SiteInput fields... } ],
+  "measurements": { "seg_001": { ...Measurements fields... } },
+  "wave_size": 6, "crew_winners": 1, "deep_dive": true
+}
+```
+
+SSE for the live map — each event is `event: verdict\ndata: {Verdict json}`:
+```js
+const res = await fetch("http://localhost:8000/survey/stream", {
+  method: "POST", headers: {"Content-Type": "application/json"},
+  body: JSON.stringify({ priorities, finalists, measurements }),
+});
+const reader = res.body.getReader();   // parse SSE; on each 'verdict' drop a pin, on 'winner' open the report
 ```
 
 ## Files
@@ -28,8 +64,10 @@ python -m swarm.run_demo
 | `prompts.py` | surveyor system prompt + per-site builder; specialist crew + judge prompts |
 | `providers.py` | Anthropic call + deterministic mock fallback |
 | `orchestrator.py` | wave runner (breadth) + winner crew + disk cache |
+| `config.py` | `.env` loading, model tiers, cost knobs |
+| `service.py` | FastAPI app: `/health`, `/survey`, `/survey/stream` (SSE) |
 | `mock_data.py` | stub finalists + measurements |
-| `run_demo.py` | end-to-end entry point |
+| `run_demo.py` | CLI end-to-end entry point |
 
 ## Wiring into the rest of Sonder
 

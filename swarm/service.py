@@ -1,0 +1,130 @@
+"""Sonder survey service — the HTTP surface the frontend calls.
+
+This is our lane's deliverable: a small FastAPI app that takes a region's finalists +
+measurements + user priorities and returns Go / Conditional / No-go verdicts, streaming them as
+each agent finishes so the map fills live. Stage 1 (screen) and the CV (measure) are other lanes;
+if the request omits finalists/measurements we fall back to mock_data so the frontend can
+integrate against this today.
+
+Run:
+    pip install -r requirements-swarm.txt
+    uvicorn swarm.service:app --reload --port 8000
+
+Endpoints:
+    GET  /health
+    POST /survey          -> full run (breadth + winner crew), JSON
+    POST /survey/stream   -> Server-Sent Events: one 'verdict' per finalist, then 'winner', 'done'
+"""
+from __future__ import annotations
+
+import json
+from dataclasses import fields
+from typing import Any, Optional
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from . import mock_data, providers, config
+from .schema import SiteInput, Measurements, UserPriorities, Verdict
+from .orchestrator import run_breadth, run_crew, pick_winners
+
+app = FastAPI(title="Sonder Survey Swarm", version="0.1.0")
+
+# the frontend is a separate origin during dev
+app.add_middleware(
+    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+)
+
+
+# ---- request model ----------------------------------------------------------
+
+class SurveyRequest(BaseModel):
+    """All optional. Omit finalists/measurements to run against mock_data (dev/demo)."""
+    finalists: Optional[list[dict[str, Any]]] = None       # SiteInput fields per item
+    measurements: Optional[dict[str, dict[str, Any]]] = None  # site_id -> Measurements fields
+    priorities: Optional[dict[str, Any]] = None            # station_size, required_frontage_ft, weights
+    wave_size: Optional[int] = None
+    crew_winners: Optional[int] = None
+    deep_dive: bool = True
+
+
+def _build(req: SurveyRequest) -> tuple[list[SiteInput], dict[str, Measurements], UserPriorities]:
+    """Map the request (or mocks) into our dataclasses, ignoring unknown keys."""
+    def pick(cls, d: dict) -> dict:
+        names = {f.name for f in fields(cls)}
+        return {k: v for k, v in d.items() if k in names}
+
+    if req.finalists:
+        sites = [SiteInput(**pick(SiteInput, d)) for d in req.finalists]
+    else:
+        sites = mock_data.finalists()
+
+    if req.measurements:
+        meas = {sid: Measurements(**pick(Measurements, d)) for sid, d in req.measurements.items()}
+    else:
+        meas = mock_data.measurements()
+
+    if req.priorities:
+        prefs = UserPriorities(**pick(UserPriorities, req.priorities))
+    else:
+        prefs = mock_data.priorities()
+    return sites, meas, prefs
+
+
+# ---- endpoints --------------------------------------------------------------
+
+@app.get("/health")
+def health() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "mode": "real" if providers.have_key() else "mock",
+        "breadth_model": config.BREADTH_MODEL,
+        "crew_model": config.CREW_MODEL,
+    }
+
+
+@app.post("/survey")
+def survey(req: SurveyRequest) -> dict[str, Any]:
+    """Full run: breadth over all finalists, then a crew deep-dive on the winner(s)."""
+    sites, meas, prefs = _build(req)
+    wave = req.wave_size or config.WAVE_SIZE
+    n_win = req.crew_winners or config.CREW_WINNERS
+
+    verdicts = list(run_breadth(sites, meas, prefs, wave_size=wave))
+    result: dict[str, Any] = {"verdicts": [v.to_dict() for v in verdicts]}
+
+    if req.deep_dive:
+        winners = pick_winners(verdicts, sites, n=n_win)
+        by_id = {s.site_id: s for s in sites}
+        crew = [run_crew(by_id[w], meas[w], prefs).to_dict() for w in winners]
+        result["winners"] = winners
+        result["crew"] = crew
+    return result
+
+
+@app.post("/survey/stream")
+def survey_stream(req: SurveyRequest) -> StreamingResponse:
+    """Server-Sent Events. Emits a 'verdict' event per finalist as agents finish, then a
+    'winner' event with the crew verdict, then 'done'. The frontend pins light up live."""
+    sites, meas, prefs = _build(req)
+    wave = req.wave_size or config.WAVE_SIZE
+    n_win = req.crew_winners or config.CREW_WINNERS
+
+    def sse(event: str, data: Any) -> str:
+        return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+    def gen():
+        verdicts: list[Verdict] = []
+        for v in run_breadth(sites, meas, prefs, wave_size=wave):
+            verdicts.append(v)
+            yield sse("verdict", v.to_dict())
+        if req.deep_dive and verdicts:
+            by_id = {s.site_id: s for s in sites}
+            for w in pick_winners(verdicts, sites, n=n_win):
+                cv = run_crew(by_id[w], meas[w], prefs)
+                yield sse("winner", cv.to_dict())
+        yield sse("done", {"count": len(verdicts)})
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
