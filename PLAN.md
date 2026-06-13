@@ -108,19 +108,27 @@ charger fits, because they never see the site. We measure the site from Cyvl's s
 ## 4. Architecture
 
 ```
-USER: circle a region on the Somerville map, set filters (size, traffic, power)
+USER: circle a region on the Somerville map, set filters (size, demand, power)
    |
-STAGE 1  SCREEN  (deterministic, fast, no LLM cost)
+STAGE 1  SCREEN  (deterministic, fast, no LLM cost)  [BUILT]
    - candidates = pavement segments inside the region
-   - enrich each with power distance, pavement, ADA, obstructions, road class
-   - gated then weighted score -> heatmap + ranked list -> top ~25
+   - enrich each with power distance, pavement, obstructions, road class
+   - gated then weighted score -> heatmap + ranked list -> top ~25 to 50
+   |
+STAGE 1.5  OBSTRUCTION FILTER  (CV / SAM3)
+   - Cyvl point assets (hydrants, trees) are not a complete obstruction picture
+   - segment each finalist's curb photo for blockers the data misses
+   - drop curbs that physically cannot host a charger -> clean shortlist of ~20 to 50
    |
 STAGE 2  SURVEY  (AI swarm, the truck-roll replacement)
-   - per finalist: SAM3 segments the photo, lifted to 3D for real measurements
-   - an agent reads measurements + public data + the photo + zoning -> verdict + why
-   - verdicts fill the map live, finalists rank, top 1-3 are "build here"
+   - lift the CV masks to 3D for real measurements (frontage, clearance, distance to power)
+   - an agent validates and rates each spot against the criteria, with the photo and zoning
+   - produces a professional, verdict-first report; finalists rank, top 1-3 are "build here"
    |
-OUTPUT: verdict-first report, evidence photo with measured line, 3D viewer, CAD export
+STAGE 3  INTERACTIVE  (the user-facing payoff)
+   - open the chosen curb segment in 3D / CAD: the SDK browser viewer live in-app, and the
+     Autodesk Civil 3D export for build-ready CAD
+   - the EV charger placed in the real curb segment, so the user sees the fit in 3D space
 ```
 
 Component roles:
@@ -180,7 +188,7 @@ Public sources we layer on:
 ### 5.2 Stage 1, the screening layer
 
 What it does: turn a circled region into a ranked, color-coded set of candidate curb segments
-in a couple of seconds, with no LLM cost.
+in a couple of seconds, with no LLM cost. Status: built and tested (see screening/).
 
 How:
 
@@ -188,15 +196,16 @@ How:
   aligned, already carries geometry, PCI, area, and street name, so we get real candidates
   without arbitrary grid sampling. Caveat we state openly: their geometry follows the cartway
   centerline, so Stage 1 width is a coarse proxy; Stage 2 gets the true usable frontage.
-- Enrichment per candidate, all deterministic from the REST API and public data: distance to
-  the nearest power asset, pavement condition and derived road width, nearest ADA ramp and
-  sidewalk condition, count of obstructions in the frontage, parking and fire-lane flags from
-  markings, and road class plus AADT from MassDOT.
-- Scoring is two steps. First, hard gates remove obvious No-gos: no power within range, frontage
-  too small for the chosen station size, pavement failed. Then a weighted score over the
-  survivors, where the filter sliders are the weights, and every score decomposes into its
-  parts so the heatmap and report can explain it.
-- Output: the region colored by score, a ranked list, and the top ~25 handed to Stage 2.
+- Enrichment per candidate, all deterministic: distance to the nearest power asset (turned into
+  a make-ready cost estimate), derived road width, pavement condition, obstruction count in the
+  frontage, fire-lane / no-parking marking flags, and FHWA functional class. Functional class
+  feeds two demand signals, residential and traveler, blended by a demand_mix knob (see filters).
+- Scoring is two steps. Hard gates remove obvious No-gos: no power within a cost-justified
+  distance (about 330 ft), frontage too small for the chosen station size, failed pavement,
+  fire-lane or no-parking marking. Then a weighted score over the survivors, where the filter
+  sliders are the weights, and every score decomposes into its parts so the report can explain it.
+- Output: the region colored by score, a ranked list with each candidate's component breakdown
+  and cost band, and the top ~25 to 50 handed to the obstruction filter and the swarm.
 
 ### 5.3 Stage 2, the survey swarm
 
@@ -206,10 +215,13 @@ truck-roll replacement, and it is why we use agents at all.
 
 How:
 
-- Perception first (real CV). For each finalist we take the nearest posed photo, run SAM3 to
-  segment the usable curb, obstructions, and the power asset, and lift those masks to 3D through
-  the LiDAR to get real measurements: usable frontage in feet, obstruction positions, and
-  distance to power. The masks drawn on the photo become the report's evidence image.
+- Perception and obstruction filter first (real CV, the Stage 1.5 step). Cyvl's point assets
+  are not a complete obstruction picture, so for each finalist we take the nearest posed photo
+  and run SAM3 to segment the usable curb, the blockers (hydrant, tree, driveway, pole), and the
+  power asset. Curbs that physically cannot host a charger are dropped here, before we spend any
+  agent tokens. For the survivors we lift those masks to 3D through the LiDAR to get real
+  measurements: usable frontage in feet, obstruction positions, and distance to power. The masks
+  drawn on the photo become the report's evidence image.
 - Judgment second. The agent is given the measured numbers, the deterministic facts, the public
   data, the zoning status, the user's priorities, and the street photo itself. Its job is to
   judge, not to invent numbers: confirm or contextualize the measurements, use vision on the
@@ -274,10 +286,14 @@ view. The starred items (fit, connection, evidence, 3D) are what no map tool can
 
 ### 5.6 3D / measurement layer
 
-We use the SDK's built-in browser viewer, which renders the point cloud through the photo's
-exact calibrated camera. We do not build a Potree pipeline; the viewer ships. We pre-cache the
-LiDAR and frames for the demo region so it loads instantly, and we export a colored point cloud
-of the winning block for the Autodesk path.
+This is Stage 3, the interactive payoff. The user opens the chosen curb segment in 3D and sees
+the EV charger placed in the real curb. Two paths, used together: the SDK's built-in browser
+viewer renders the point cloud through the photo's exact calibrated camera for the live in-app
+view (no Potree pipeline to build, it ships), and a colored point cloud of the segment exports
+to Autodesk Civil 3D for build-ready CAD. Honest scoping: the live, click-it-now view is the SDK
+viewer; the Civil 3D round-trip is heavier, so treat the CAD as an export and handoff artifact,
+not a live in-browser round-trip. We pre-cache the LiDAR and frames for the demo region so the
+viewer loads instantly.
 
 ### 5.7 Backend layer
 
@@ -293,8 +309,12 @@ key and runs the SDK measurement step; the API key lives in a gitignored .env, n
 
 - Station size: strongest, because it is measured. Size maps to a required frontage length, used
   as a gate and a weight, and Stage 2 measures the real frontage. This is our wedge, lead with it.
-- Traffic: feasible. Real volume from MassDOT AADT where it exists, road hierarchy from Cyvl
-  functional_class and MassDOT class everywhere, OSM as fallback. We say "proxy" where it is one.
+- Demand (the "traffic" filter): we score both residential demand (residents who park on-street
+  overnight, favoring local and collector streets) and traveler demand (through-traffic with curb
+  access, favoring arterials and collectors), blended by a demand_mix knob, balanced by default,
+  because curbside serves both families and travelers. Built from Cyvl's functional_class today;
+  MassDOT AADT volume and residential density are the upgrades to pair in. We say "proxy" where
+  it is one.
 - Power: feasible as proximity to scanned poles and luminaires, which for curbside is the real
   interconnection point. True grid capacity is utility-private and gets flagged, not faked.
 
