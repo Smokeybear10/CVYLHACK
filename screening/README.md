@@ -34,10 +34,9 @@ refines it with real measurement and the photo.
 ## How it works
 
 1. Candidates are the pavement segments inside the region (one row each).
-2. Each is enriched with distance to nearest power asset, ADA ramp distance,
-   obstruction count in the frontage, disqualifying markings, derived road
-   width, pavement condition, and FHWA functional class. All distance math is
-   in UTM 19N.
+2. Each is enriched with distance to nearest power asset, obstruction count in
+   the frontage, disqualifying markings, derived road width, pavement condition,
+   and FHWA functional class. All distance math is in UTM 19N.
 3. Hard gates drop obvious No-gos (no power in range, frontage too small, failed
    pavement, fire-lane / no-parking marking). Survivors get a weighted score
    where the filter sliders are the weights.

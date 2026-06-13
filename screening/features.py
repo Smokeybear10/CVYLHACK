@@ -111,7 +111,7 @@ def build_candidates(layers: dict, region=None, functional_class: pd.DataFrame |
     # Empty region: return an empty, well-formed frame.
     if len(pav) == 0:
         cols = ["cand_id", "address_st", "score", "label", "length_ft", "area_sqft",
-                "road_width_ft", "dist_to_power_m", "dist_to_ramp_m", "obstruction_count",
+                "road_width_ft", "dist_to_power_m", "obstruction_count",
                 "disqualify_marking", "functional_class", "geometry"]
         return gpd.GeoDataFrame(columns=cols, geometry="geometry", crs=config.WGS84)
 
@@ -121,7 +121,6 @@ def build_candidates(layers: dict, region=None, functional_class: pd.DataFrame |
     # Project everything to meters once.
     pav_utm = pav.to_crs(config.UTM_19N)
     power_utm = assets[assets["asset_type"].isin(config.POWER_TYPES)].to_crs(config.UTM_19N) if len(assets) else assets
-    ramp_utm = assets[assets["asset_type"] == config.RAMP_TYPE].to_crs(config.UTM_19N) if len(assets) else assets
     obstr_utm = assets[assets["asset_type"].isin(config.OBSTRUCTION_TYPES)].to_crs(config.UTM_19N) if len(assets) else assets
 
     if len(markings):
@@ -131,7 +130,6 @@ def build_candidates(layers: dict, region=None, functional_class: pd.DataFrame |
         disq = markings
 
     pav["dist_to_power_m"] = _nearest_distance_m(pav_utm, power_utm, "dist_to_power_m").values
-    pav["dist_to_ramp_m"] = _nearest_distance_m(pav_utm, ramp_utm, "dist_to_ramp_m").values
     pav["obstruction_count"] = _count_within(pav_utm, obstr_utm, config.FRONTAGE_BUFFER_M).values
     pav["disqualify_marking"] = _any_within(pav_utm, disq, config.FRONTAGE_BUFFER_M).values
 

@@ -107,17 +107,6 @@ def pavement_score(pci: float) -> float:
     return _clamp01((pci or 0.0) / 100.0)
 
 
-def ada_score(dist_to_ramp_m: float) -> float:
-    # Full credit within 25 m of a ramp, fading to zero by 75 m.
-    if dist_to_ramp_m is None or math.isinf(dist_to_ramp_m):
-        return 0.0
-    if dist_to_ramp_m <= 25.0:
-        return 1.0
-    if dist_to_ramp_m >= 75.0:
-        return 0.0
-    return _clamp01((75.0 - dist_to_ramp_m) / 50.0)
-
-
 def obstruction_score(count: int) -> float:
     # 1.0 = clear, decreasing with each obstruction in the frontage.
     return _clamp01(1.0 - (count or 0) / config.OBSTRUCTION_FULL_PENALTY_AT)
@@ -157,7 +146,6 @@ def score_row(row, filters: Filters, weights: dict, required_ft: float) -> dict:
         "demand": demand_score(row.get("functional_class"), filters.demand_mix),
         "fit": fit_score(row.get("length_ft"), required_ft),
         "pavement": pavement_score(row.get("pci")),
-        "ada": ada_score(row.get("dist_to_ramp_m")),
         "obstruction": obstruction_score(row.get("obstruction_count")),
     }
     raw = sum(weights.get(k, 0.0) * components[k] for k in components)

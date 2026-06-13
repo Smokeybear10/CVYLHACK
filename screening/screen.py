@@ -25,7 +25,7 @@ from .scoring import Filters, score_candidates
 
 _FEATURE_PROPS = [
     "cand_id", "address_st", "score", "verdict", "gated", "gate_reasons", "components",
-    "pci", "label", "length_ft", "road_width_ft", "dist_to_power_m", "dist_to_ramp_m",
+    "pci", "label", "length_ft", "road_width_ft", "dist_to_power_m",
     "obstruction_count", "disqualify_marking", "functional_class",
     "residential_suit", "traffic_suit", "est_make_ready_usd", "connection_cost_band",
 ]

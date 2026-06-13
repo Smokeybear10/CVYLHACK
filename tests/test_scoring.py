@@ -53,13 +53,10 @@ def test_demand_mix_blends_both_use_cases():
     assert 0.0 <= S.demand_score(4, mix=5.0) <= 1.0
 
 
-def test_pavement_ada_obstruction_bounds():
+def test_pavement_obstruction_bounds():
     assert S.pavement_score(0) == 0.0
     assert S.pavement_score(100) == 1.0
     assert S.pavement_score(None) == 0.0
-    assert S.ada_score(0) == 1.0
-    assert S.ada_score(float("inf")) == 0.0
-    assert 0.0 < S.ada_score(50) < 1.0
     assert S.obstruction_score(0) == 1.0
     assert S.obstruction_score(config.OBSTRUCTION_FULL_PENALTY_AT) == 0.0
     assert S.obstruction_score(100) == 0.0  # clamped, never negative
@@ -70,7 +67,7 @@ def test_pavement_ada_obstruction_bounds():
 def _good_row():
     return {
         "dist_to_power_m": 12.0, "length_ft": 30.0, "label": "Good",
-        "disqualify_marking": False, "pci": 85.0, "dist_to_ramp_m": 10.0,
+        "disqualify_marking": False, "pci": 85.0,
         "obstruction_count": 0, "functional_class": 4.0,
     }
 

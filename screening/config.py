@@ -40,7 +40,6 @@ UTM_19N = 32619  # meters, correct zone for Somerville; used for all distance ma
 # Interconnection proxies. For a curbside charger the nearest of these is the
 # real connection point, so the minimum distance to any of them is the signal.
 POWER_TYPES = {"UTILITY_POLE", "LUMINARIES", "TRAFFIC_SIGNAL_POLE"}
-RAMP_TYPE = "RAMP"
 # Physical things that eat into usable curb frontage.
 OBSTRUCTION_TYPES = {"HYDRANT", "TREE", "CATCH_BASIN", "FLASHING_BEACONS", "BIKE_RACK"}
 
@@ -89,11 +88,10 @@ DEFAULT_DEMAND_MIX = 0.5     # default weight on residential vs traveler demand
 # The filter sliders override these; values are normalized to sum to 1.
 DEFAULT_WEIGHTS = {
     "power": 0.30,
-    "demand": 0.25,    # blended residential + traveler demand (see demand_mix)
-    "fit": 0.20,
-    "ada": 0.10,
-    "obstruction": 0.10,
-    "pavement": 0.05,
+    "demand": 0.28,    # blended residential + traveler demand (see demand_mix)
+    "fit": 0.22,
+    "obstruction": 0.13,
+    "pavement": 0.07,
 }
 
 # Station size -> required usable curb frontage in feet. Grounded in an on-street
