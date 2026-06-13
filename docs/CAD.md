@@ -1,8 +1,33 @@
 # CAD — what it is, why, and where it's going
 
-Lives on the `cad` branch (off `main`, not `swarm`). This is Sonder's Autodesk path: turn the
-winning curb into an editable 3D CAD scene and drop an EV charging station on it. It is our second
+Lives on the `cad` branch (off `main`, not `swarm`). This is Sonder's Autodesk path and **Stage 3,
+the interactive payoff** (see PLAN.md §4 and §5.6): open the winning curb in 3D/CAD with the EV
+charger placed in the real curb segment, so the user sees the fit in 3D space. It is our second
 sponsor (NVIDIA + Autodesk) and the closing beat of the demo.
+
+## Aligned with the current PLAN.md (read this first)
+
+PLAN.md changed. Stage 3 is now explicit and the architecture is Stage 1 (screen) → 1.5
+(obstruction CV) → 2 (swarm) → **3 (interactive 3D/CAD)**. The plan names two Autodesk-adjacent
+realizations for Stage 3, and Xavier's tool is a third. They are not the same product — this is the
+one thing the team must align on:
+
+| Realization | What it is | Plan ref | Live? |
+|---|---|---|---|
+| **SDK browser viewer** | point cloud through the photo's calibrated camera, in-app | §5.6 "live in-app" | yes, ships |
+| **Xavier's APS Viewer** (`hackathonBuckets`) | reconstructed editable scene, EV station **placeable + movable** in-browser | (not yet in plan) | yes, interactive |
+| **Civil 3D export** | ReCap → Civil 3D build-ready CAD file | §7 Autodesk, §5.6 "export" | no, pre-baked artifact |
+
+**Recommendation:** make **Xavier's APS Viewer the primary interactive Stage 3 + the Autodesk
+sponsor check** — it is the only one that literally "places the EV charger in the real curb and lets
+you see/move the fit," which is exactly what Stage 3 asks for, and Xavier built it and wants us on
+it. Keep the SDK viewer as the lightweight always-works fallback, and treat Civil 3D as the
+heavier "build-ready export" handoff artifact the plan mentions in §7 (pre-baked, not live). That
+keeps us aligned with §5.6/§7 while using the better interactive tool.
+
+**Open decision for the team:** confirm APS Viewer (Xavier) as the Stage 3 demo, with Civil 3D as
+an optional export. If the team insists on Civil 3D as the headline, that is a heavier, riskier
+desktop round-trip and we should say so.
 
 ## The purpose in one line
 
@@ -100,13 +125,17 @@ The swarm already produces the winner. CAD needs a tiny json:
 That is a subset of our `Verdict` (which now carries `lon`/`lat`) plus the street bearing. The swarm
 writes it; the CAD pipeline reads it to aim the crop and place the station.
 
-## How it fits the whole product
+## How it fits the whole product (PLAN.md §4 architecture)
 
 ```
-Stage 1 screen (Saim) -> Stage 2 swarm (us) picks the winner -> CAD (this): reconstruct the
-winner's block from the Cyvl scan + place the EV station at the measured curb -> Autodesk Viewer
-(movable). Frontend (Thomas) drives the map; CAD is the "export / 3D" tab on the winner.
+Stage 1 SCREEN (Saim)  ->  Stage 1.5 OBSTRUCTION CV/SAM3 (Max)  ->  Stage 2 SWARM (swarm lane)
+picks the winner  ->  Stage 3 INTERACTIVE (this, CAD): reconstruct the winner's curb from the
+Cyvl scan + place the EV charger in it -> Autodesk APS Viewer (movable), with the SDK viewer as
+the light fallback and a Civil 3D export as the build-ready artifact.
 ```
+
+Frontend (Thomas) drives the map and opens Stage 3 on the winner. CAD consumes only the tiny
+winner handoff below; it does not screen, measure, or judge.
 
 ## Status — how it's going
 
