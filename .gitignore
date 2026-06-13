@@ -13,3 +13,4 @@ venv/
 *.ply
 data/
 data_cache/
+.swarm_cache/

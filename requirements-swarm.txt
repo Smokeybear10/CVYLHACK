@@ -1,0 +1,3 @@
+# Sonder survey swarm (Stage 2). Mock mode needs nothing beyond the stdlib.
+# Real mode needs the Anthropic SDK.
+anthropic>=0.40
