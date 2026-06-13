@@ -12,3 +12,6 @@ venv/
 *.copc
 *.ply
 data/
+# cached layer downloads (re-fetched from the public bucket on demand)
+_cache/
+*.parquet
